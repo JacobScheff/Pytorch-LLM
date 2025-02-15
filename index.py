@@ -47,6 +47,12 @@ for line in encoded_train_data:
         X.append(line[:i])
         y.append(line[i])
 
+X = [X]
+y = [y]
+
+X = torch.tensor(X)
+y = torch.tensor(y)
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
