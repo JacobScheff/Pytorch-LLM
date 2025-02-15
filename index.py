@@ -39,7 +39,13 @@ def encode(line):
 def decode(tokens):
     return [vocab[token] for token in tokens]
 
-training_data = [encode(line) for line in train_data]
+encoded_train_data = [encode(line) for line in train_data]
+
+X, y = [], []
+for line in encoded_train_data:
+    for i in range(1, len(line)):
+        X.append(line[:i])
+        y.append(line[i])
 
 class Net(nn.Module):
     def __init__(self):
@@ -68,4 +74,3 @@ class Net(nn.Module):
         return x
     
 net = Net()
-print(net)
