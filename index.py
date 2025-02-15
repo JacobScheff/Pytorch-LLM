@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets
-from torchvision.transforms import ToTensor
+from torchtext.data.utils import get_tokenizer
 
 train_data = [
     "this is a sentence",
@@ -12,4 +12,5 @@ train_data = [
     "the quick brown fox jumps over the lazy dog",
 ]
 
-tokenizer = Tokenizer(train_data)
+tokenizer = get_tokenizer("basic_english")
+train_data = [tokenizer(item) for item in train_data]
