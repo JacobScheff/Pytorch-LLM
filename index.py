@@ -5,6 +5,7 @@ from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
 
 max_token_length = 9
+batch_size = 2
 
 train_data = [
     "this is a sentence",
@@ -51,6 +52,13 @@ for line in encoded_train_data:
         X.append(line[:i] + [word_to_idx["<PAD>"]] * (max_token_length - i))
         y.append([line[i]])
 
+X = torch.tensor(X)
+y = torch.tensor(y)
+
+# Create a dataset and dataloader
+dataset = torch.utils.data.TensorDataset(X, y)
+dataloader = DataLoader(dataset, batch_size=2)
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -77,6 +85,21 @@ class Net(nn.Module):
         x = self.softmax(x)
         return x
     
-# net = Net()
+net = Net()
 
-# criterion = nn.CrossEntropyLoss()
+# Train the model
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+
+for epoch in range(100):
+    for X_batch, y_batch in dataloader:
+        optimizer.zero_grad()
+        output = net(X_batch)
+        loss = criterion(output, y_batch.squeeze())
+        loss.backward()
+        optimizer.step()
+        
+    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
+
+# Save the model
+torch.save(net.state_dict(), "model.pth")
