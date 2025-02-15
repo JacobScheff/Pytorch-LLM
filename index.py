@@ -44,14 +44,12 @@ encoded_train_data = [encode(line) for line in train_data]
 X, y = [], []
 for line in encoded_train_data:
     for i in range(1, len(line)):
-        X.append(line[:i])
-        y.append(line[i])
+        # Stop at the first padding token
+        if line[i] == word_to_idx["<PAD>"]:
+            break
 
-X = [X]
-y = [y]
-
-X = torch.tensor(X)
-y = torch.tensor(y)
+        X.append(line[:i] + [word_to_idx["<PAD>"]] * (max_token_length - i))
+        y.append([line[i]])
 
 class Net(nn.Module):
     def __init__(self):
@@ -79,4 +77,6 @@ class Net(nn.Module):
         x = self.softmax(x)
         return x
     
-net = Net()
+# net = Net()
+
+# criterion = nn.CrossEntropyLoss()
