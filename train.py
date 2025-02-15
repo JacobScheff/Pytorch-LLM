@@ -26,7 +26,7 @@ vocab = sorted(list(vocab))
 word_to_id = {word: i for i, word in enumerate(vocab)}
 
 # Save word_to_id
-print(word_to_id)
+torch.save(word_to_id, "word_to_id.pth")
 
 # # Special tokens
 # word_to_id["<PAD>"] = len(word_to_id)
