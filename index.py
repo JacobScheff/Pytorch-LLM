@@ -41,12 +41,31 @@ def decode(tokens):
 
 training_data = [encode(line) for line in train_data]
 
-# class Net(nn.Module):
-#     def __init__(self):
-#         super(Net, self).__init__()
-#         self.embedding = nn.Embedding(len(vocab), 10)
-#         self.f1 = nn.Linear(len(vocab) * 10, 100)
-#         self.relu = nn.ReLU()
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.embed_size = 10
+        self.embedding = nn.Embedding(len(vocab), self.embed_size)
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 100)
+        self.f2 = nn.Linear(100, 100)
+        self.f3 = nn.Linear(100, len(vocab))
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+        self.flatten = nn.Flatten()
 
-#     def forward(self, x):
-#         return self.fc(x)
+    def forward(self, x):
+        x = self.embedding(x)
+        x = self.flatten(x)
+
+        x = self.f1(x)
+        x = self.relu(x)
+
+        x = self.f2(x)
+        x = self.relu(x)
+
+        x = self.f3(x)
+        x = self.softmax(x)
+        return x
+    
+net = Net()
+print(net)
