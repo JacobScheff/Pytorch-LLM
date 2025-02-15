@@ -25,6 +25,7 @@ vocab = sorted(list(vocab))
 # Create a mapping from words to indices
 word_to_id = {word: i for i, word in enumerate(vocab)}
 
+# Save word_to_id
 print(word_to_id)
 
 # # Special tokens
