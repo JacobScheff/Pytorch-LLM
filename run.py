@@ -12,6 +12,9 @@ def encode(line):
     tokens = tokenizer(line)
     tokens = [word_to_id.get(token, word_to_id["<UNK>"]) for token in tokens]
     tokens += [word_to_id["<PAD>"]] * (max_token_length - len(tokens))
+    if len(tokens) > max_token_length:
+        # Remove the first tokens
+        tokens = tokens[-max_token_length:]
     return tokens
 
 def decode(tokens):
@@ -73,6 +76,6 @@ for _ in range(max_output_length):
     output = torch.argmax(output).item()
 
     output = vocab[output]
-    
+
     print(output, end=" ")
     total_input += " " + output
