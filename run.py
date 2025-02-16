@@ -36,6 +36,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.embed_size = 20
         self.embedding = nn.Embedding(len(vocab), self.embed_size)
+        self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
         self.f1 = nn.Linear(max_token_length * self.embed_size, 500)
         self.f2 = nn.Linear(500, 500)
         self.f3 = nn.Linear(500, len(vocab))
@@ -43,7 +44,10 @@ class Net(nn.Module):
         self.flatten = nn.Flatten()
 
     def forward(self, x):
-        x = self.embedding(x)
+        vocab_x = self.embedding(x)
+        pos_x = self.positional_embedding(torch.arange(max_token_length))
+        x = vocab_x + pos_x
+
         x = self.flatten(x)
 
         x = self.f1(x)
