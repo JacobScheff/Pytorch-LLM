@@ -16,6 +16,7 @@ train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[:10]
 print("Loading tokenizer...")
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
+print(f"Vocab size: {len(tokenizer)}")
 
 def encode(line, truncate=True):
     tokens = tokenizer.tokenize(line)
