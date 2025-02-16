@@ -33,8 +33,9 @@ vocab.append("<PAD>")
 word_to_id["<UNK>"] = len(word_to_id)
 vocab.append("<UNK>")
 
-# Save word_to_id
+# Save word_to_id and vocab
 torch.save(word_to_id, "word_to_id.pth")
+torch.save(vocab, "vocab.pth")
 
 def encode(line):
     tokens = tokenizer(line)
