@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
 
-max_token_length = 9
+max_token_length = 20
 max_output_length = 50
 input = "A GUI uses"
 

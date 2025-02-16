@@ -5,7 +5,7 @@ from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
 import json
 
-max_token_length = 9
+max_token_length = 20
 
 train_data = json.load(open("training_data.json", "r"))[:100]
 
