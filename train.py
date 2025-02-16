@@ -7,7 +7,7 @@ from torchtext.data.utils import get_tokenizer
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 20
-batch_size = 1024
+batch_size = 512
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
@@ -23,15 +23,17 @@ tokenizer = get_tokenizer("basic_english")
 word_to_id = torch.load("word_to_id.pth")
 vocab = torch.load("vocab.pth")
 
+# Create the model
+print("Creating model...")
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.embed_size = 120
         self.embedding = nn.Embedding(len(vocab), self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(max_token_length * self.embed_size, 10_000)
-        self.f2 = nn.Linear(10_000, 10_000)
-        self.f3 = nn.Linear(10_000, len(vocab))
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 1_000)
+        self.f2 = nn.Linear(1_000, 1_000)
+        self.f3 = nn.Linear(1_000, len(vocab))
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
@@ -53,28 +55,32 @@ class Net(nn.Module):
 
 net = Net().to(device)
 
-# Train the model
-print("Training model...")
-criterion = nn.CrossEntropyLoss() # Automatically applies softmax
-optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+# Print the total number of parameters
+total_params = sum(p.numel() for p in net.parameters())
+print(f"Total parameters: {total_params:,}")
 
-for epoch in range(100):
-    if epoch == 50:
-        optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+# # Train the model
+# print("Training model...")
+# criterion = nn.CrossEntropyLoss() # Automatically applies softmax
+# optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 
-    for X_batch, y_batch in dataloader:
-        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-        optimizer.zero_grad()
-        output = net(X_batch)
-        loss = criterion(output, y_batch.squeeze())
-        loss.backward()
-        optimizer.step()
+# for epoch in range(100):
+#     if epoch == 50:
+#         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+
+#     for X_batch, y_batch in dataloader:
+#         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+#         optimizer.zero_grad()
+#         output = net(X_batch)
+#         loss = criterion(output, y_batch.squeeze())
+#         loss.backward()
+#         optimizer.step()
     
-    # Save the model every 5 epochs
-    if (epoch + 1) % 5 == 0:
-        torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
+#     # Save the model every 5 epochs
+#     if (epoch + 1) % 1 == 0:
+#         torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
             
-    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
+#     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
-# Save the model
-torch.save(net.state_dict(), "model.pth")
+# # Save the model
+# torch.save(net.state_dict(), "model.pth")

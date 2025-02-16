@@ -39,9 +39,9 @@ class Net(nn.Module):
         self.embed_size = 120
         self.embedding = nn.Embedding(len(vocab), self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(max_token_length * self.embed_size, 500)
-        self.f2 = nn.Linear(500, 500)
-        self.f3 = nn.Linear(500, len(vocab))
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 10_000)
+        self.f2 = nn.Linear(10_000, 10_000)
+        self.f3 = nn.Linear(10_000, len(vocab))
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
