@@ -5,12 +5,13 @@ from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
 import json
 from transformers import GPT2Tokenizer
+from tqdm.auto import tqdm
 
 max_token_length = 20
 
 # Load the training data
 print("Loading training data...")
-train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[:10]
+train_data = json.load(open("training_data.json", "r", encoding="utf-8"))
 
 # Load the tokenizer
 print("Loading tokenizer...")
@@ -32,12 +33,14 @@ def decode(tokens):
 
 # Encode the training data
 print("Encoding training data...")
-encoded_train_data = [encode(line, truncate=False) for line in train_data]
+encoded_train_data = []
+for line in tqdm(train_data):
+    encoded_train_data.append(encode(line, truncate=False))
 
 # Create X and y
 print("Creating X and y...")
 X, y = [], []
-for line in encoded_train_data:
+for line in tqdm(encoded_train_data):
     for i in range(1, len(line)):
         X.append((line[:i] + [tokenizer.pad_token_id] * max(max_token_length - i, 0))[-max_token_length:])
         y.append([line[i]])
