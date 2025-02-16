@@ -31,27 +31,23 @@ class Net(nn.Module):
         self.f3 = nn.Linear(500, len(vocab))
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
+        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=1)
 
     def forward(self, x):
         vocab_x = self.embedding(x)
         pos_x = self.positional_embedding(torch.arange(max_token_length))
         x = vocab_x + pos_x
 
+        x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
+        x, _ = self.attention(x, x, x)
+    
         x = self.flatten(x)
-
-        x = self.f1(x)
-        x = self.relu(x)
-
-        x = self.f2(x)
-        x = self.relu(x)
-
-        for _ in range(5):
-            x = self.f2(x)
-            x = self.relu(x)
         
+        x = self.relu(self.f1(x))
+        x = self.relu(self.f2(x))
         x = self.f3(x)
         return x
-    
+
 net = Net()
 
 # Train the model
