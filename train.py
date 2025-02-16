@@ -9,6 +9,9 @@ torch.manual_seed(0) # Set seed for reproducibility
 max_token_length = 9
 batch_size = 32
 
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+print(f"Using {device} device")
+
 # Load the training data
 print("Loading training data...")
 dataset = torch.load("dataset.pth", weights_only=False)
@@ -31,11 +34,11 @@ class Net(nn.Module):
         self.f3 = nn.Linear(500, len(vocab))
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
-        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8)
+        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
 
     def forward(self, x):
         vocab_x = self.embedding(x)
-        pos_x = self.positional_embedding(torch.arange(max_token_length))
+        pos_x = self.positional_embedding(torch.arange(max_token_length).to(device))
         x = vocab_x + pos_x
 
         x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
@@ -48,7 +51,7 @@ class Net(nn.Module):
         x = self.f3(x)
         return x
 
-net = Net()
+net = Net().to(device)
 
 # Train the model
 print("Training model...")
@@ -60,6 +63,7 @@ for epoch in range(100):
         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
     for X_batch, y_batch in dataloader:
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
         output = net(X_batch)
         loss = criterion(output, y_batch.squeeze())
