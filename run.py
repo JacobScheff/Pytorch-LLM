@@ -5,6 +5,7 @@ from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
 
 max_token_length = 9
+max_output_length = 20
 input = "the"
 
 def encode(line):
@@ -24,9 +25,6 @@ word_to_id = torch.load("word_to_id.pth")
 # Load the vocab
 print("Loading vocab...")
 vocab = torch.load("vocab.pth")
-
-# Encode the input
-encoded_input = encode(input)
 
 # Load the model
 print("Loading model...")
@@ -65,13 +63,16 @@ model.eval() # Set the model to evaluation mode
 # Run the model
 print("Running...")
 print(input, end=" ")
-while True:
+
+total_input = input
+for _ in range(max_output_length):
+    encoded_input = encode(total_input)
+
     output = model(torch.tensor([encoded_input]))[0]
     output = torch.softmax(output, dim=0)
     output = torch.argmax(output).item()
 
-    print(vocab[output], end=" ")
-    encoded_input = encoded_input[1:] + [output]
-
-    if len(encoded_input) >= max_token_length:
-        break
+    output = vocab[output]
+    
+    print(output, end=" ")
+    total_input += " " + output
