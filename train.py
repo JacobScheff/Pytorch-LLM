@@ -3,11 +3,12 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
+from tqdm.auto import tqdm
 
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 20
-batch_size = 512
+batch_size = 1024
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
@@ -59,28 +60,28 @@ net = Net().to(device)
 total_params = sum(p.numel() for p in net.parameters())
 print(f"Total parameters: {total_params:,}")
 
-# # Train the model
-# print("Training model...")
-# criterion = nn.CrossEntropyLoss() # Automatically applies softmax
-# optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+# Train the model
+print("Training model...")
+criterion = nn.CrossEntropyLoss() # Automatically applies softmax
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 
-# for epoch in range(100):
-#     if epoch == 50:
-#         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+for epoch in range(100):
+    if epoch == 50:
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
-#     for X_batch, y_batch in dataloader:
-#         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-#         optimizer.zero_grad()
-#         output = net(X_batch)
-#         loss = criterion(output, y_batch.squeeze())
-#         loss.backward()
-#         optimizer.step()
+    for X_batch, y_batch in tqdm(dataloader):
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+        optimizer.zero_grad()
+        output = net(X_batch)
+        loss = criterion(output, y_batch.squeeze())
+        loss.backward()
+        optimizer.step()
     
-#     # Save the model every 5 epochs
-#     if (epoch + 1) % 1 == 0:
-#         torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
+    # Save the model every 5 epochs
+    if (epoch + 1) % 1 == 0:
+        torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
             
-#     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
+    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
-# # Save the model
-# torch.save(net.state_dict(), "model.pth")
+# Save the model
+torch.save(net.state_dict(), "model.pth")
