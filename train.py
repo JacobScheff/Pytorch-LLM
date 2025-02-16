@@ -71,8 +71,8 @@ for epoch in range(100):
         optimizer.step()
     
     # Save the model every 5 epochs
-    if epoch % 5 == 0:
-        torch.save(net.state_dict(), f"models/model_{epoch}.pth")
+    if (epoch + 1) % 5 == 0:
+        torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
             
     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
