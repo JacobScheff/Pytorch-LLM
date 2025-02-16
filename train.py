@@ -9,64 +9,16 @@ torch.manual_seed(0) # Set seed for reproducibility
 max_token_length = 9
 batch_size = 2
 
-train_data = [
-    "this is a sentence",
-    "two words",
-    "three words here",
-    "there are five words here",
-    "the quick brown fox jumps over the lazy dog",
-]
+# Load the training data
+print("Loading training data...")
+dataset = torch.load("dataset.pth", weights_only=False)
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-# Create a tokenizer based off of the training data
+# Load the tokenizer and vocab
+print("Loading tokenizer and vocab...")
 tokenizer = get_tokenizer("basic_english")
-vocab = set()
-for line in train_data:
-    vocab.update(tokenizer(line))
-vocab = sorted(list(vocab))
-
-# Create a mapping from words to indices
-word_to_id = {word: i for i, word in enumerate(vocab)}
-
-# Special tokens
-word_to_id["<PAD>"] = len(word_to_id)
-vocab.append("<PAD>")
-word_to_id["<UNK>"] = len(word_to_id)
-vocab.append("<UNK>")
-
-# Save word_to_id and vocab
-torch.save(word_to_id, "word_to_id.pth")
-torch.save(vocab, "vocab.pth")
-
-def encode(line):
-    tokens = tokenizer(line)
-    tokens = [word_to_id.get(token, word_to_id["<UNK>"]) for token in tokens]
-    tokens += [word_to_id["<PAD>"]] * (max_token_length - len(tokens))
-    if len(tokens) > max_token_length:
-        # Remove the first tokens
-        tokens = tokens[-max_token_length:]
-    return tokens
-
-def decode(tokens):
-    return [vocab[token] for token in tokens]
-
-encoded_train_data = [encode(line) for line in train_data]
-
-X, y = [], []
-for line in encoded_train_data:
-    for i in range(1, len(line)):
-        # Stop at the first padding token
-        if line[i] == word_to_id["<PAD>"]:
-            break
-
-        X.append(line[:i] + [word_to_id["<PAD>"]] * (max_token_length - i))
-        y.append([line[i]])
-
-X = torch.tensor(X)
-y = torch.tensor(y)
-
-# Create a dataset and dataloader
-dataset = torch.utils.data.TensorDataset(X, y)
-dataloader = DataLoader(dataset, batch_size=2)
+word_to_id = torch.load("word_to_id.pth")
+vocab = torch.load("vocab.pth")
 
 class Net(nn.Module):
     def __init__(self):
