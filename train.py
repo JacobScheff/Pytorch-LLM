@@ -23,7 +23,7 @@ vocab = torch.load("vocab.pth")
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.embed_size = 20
+        self.embed_size = 120
         self.embedding = nn.Embedding(len(vocab), self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
         self.f1 = nn.Linear(max_token_length * self.embed_size, 500)
@@ -31,7 +31,7 @@ class Net(nn.Module):
         self.f3 = nn.Linear(500, len(vocab))
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
-        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=1)
+        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8)
 
     def forward(self, x):
         vocab_x = self.embedding(x)
