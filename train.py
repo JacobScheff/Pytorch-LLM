@@ -39,9 +39,9 @@ class Net(nn.Module):
         x = vocab_x + pos_x
 
         x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
-        x, _ = self.attention(x, x, x)
+        attn_output, _ = self.attention(x, x, x)
     
-        x = self.flatten(x)
+        x = self.flatten(attn_output.permute(1,0,2))
         
         x = self.relu(self.f1(x))
         x = self.relu(self.f2(x))
