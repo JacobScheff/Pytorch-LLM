@@ -7,7 +7,7 @@ from torchtext.data.utils import get_tokenizer
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 9
-batch_size = 32
+batch_size = 64
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
