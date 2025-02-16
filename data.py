@@ -7,7 +7,7 @@ import json
 
 max_token_length = 20
 
-train_data = json.load(open("training_data.json", "r"))[:100]
+train_data = json.load(open("training_data.json", "r"))[:1000]
 
 # Create a tokenizer based off of the training data
 tokenizer = get_tokenizer("basic_english")
