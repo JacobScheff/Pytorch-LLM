@@ -51,6 +51,7 @@ class Net(nn.Module):
 net = Net()
 
 # Train the model
+print("Training model...")
 criterion = nn.CrossEntropyLoss() # Automatically applies softmax
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 
