@@ -6,7 +6,9 @@ from torchtext.data.utils import get_tokenizer
 
 max_token_length = 9
 max_output_length = 50
-input = "there once was"
+input = "A GUI uses"
+
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
 def encode(line):
     tokens = tokenizer(line)
@@ -34,7 +36,7 @@ print("Loading model...")
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.embed_size = 20
+        self.embed_size = 120
         self.embedding = nn.Embedding(len(vocab), self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
         self.f1 = nn.Linear(max_token_length * self.embed_size, 500)
@@ -42,11 +44,11 @@ class Net(nn.Module):
         self.f3 = nn.Linear(500, len(vocab))
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
-        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=1)
+        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
 
     def forward(self, x):
         vocab_x = self.embedding(x)
-        pos_x = self.positional_embedding(torch.arange(max_token_length))
+        pos_x = self.positional_embedding(torch.arange(max_token_length).to(device))
         x = vocab_x + pos_x
 
         x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
@@ -59,7 +61,7 @@ class Net(nn.Module):
         x = self.f3(x)
         return x
 
-model = Net()
+model = Net().to(device)
 model.load_state_dict(torch.load("model.pth"))
 model.eval() # Set the model to evaluation mode
 
@@ -71,7 +73,7 @@ output_string = input
 for _ in range(max_output_length):
     encoded_input = encode(output_string)
 
-    output = model(torch.tensor([encoded_input]))[0]
+    output = model(torch.tensor([encoded_input]).to(device))[0]
     output = torch.softmax(output, dim=0)
     output = torch.argmax(output).item()
 
