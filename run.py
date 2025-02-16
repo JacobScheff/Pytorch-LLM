@@ -5,8 +5,8 @@ from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
 
 max_token_length = 9
-max_output_length = 20
-input = "the fearing mind is"
+max_output_length = 50
+input = "there once was"
 
 def encode(line):
     tokens = tokenizer(line)

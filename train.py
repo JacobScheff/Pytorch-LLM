@@ -7,7 +7,7 @@ from torchtext.data.utils import get_tokenizer
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 9
-batch_size = 8
+batch_size = 32
 
 # Load the training data
 print("Loading training data...")
