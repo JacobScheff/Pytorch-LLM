@@ -3,33 +3,32 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
+from transformers import GPT2Tokenizer
 
 max_token_length = 20
 max_output_length = 50
-input = "This model suggests that"
+input = "InsideAR was"
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
-def encode(line):
-    tokens = tokenizer(line)
-    tokens = [word_to_id.get(token, word_to_id["<UNK>"]) for token in tokens]
-    tokens += [word_to_id["<PAD>"]] * (max_token_length - len(tokens))
-    if len(tokens) > max_token_length:
+# Load the tokenizer
+print("Loading tokenizer...")
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
+vocab_size = len(tokenizer)
+print(f"Vocab size: {len(tokenizer)}")
+
+def encode(line, truncate=True):
+    tokens = tokenizer.tokenize(line)
+    tokens = tokenizer.convert_tokens_to_ids(tokens)
+    tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
+    if truncate and len(tokens) > max_token_length:
         # Remove the first tokens
         tokens = tokens[-max_token_length:]
     return tokens
 
 def decode(tokens):
-    return [vocab[token] for token in tokens]
-
-# Load the tokenizer
-print("Loading tokenizer...")
-tokenizer = get_tokenizer("basic_english")
-word_to_id = torch.load("word_to_id.pth")
-
-# Load the vocab
-print("Loading vocab...")
-vocab = torch.load("vocab.pth")
+    return tokenizer.convert_ids_to_tokens(tokens)
 
 # Load the model
 print("Loading model...")
@@ -37,11 +36,11 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.embed_size = 120
-        self.embedding = nn.Embedding(len(vocab), self.embed_size)
+        self.embedding = nn.Embedding(vocab_size, self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
         self.f1 = nn.Linear(max_token_length * self.embed_size, 1_000)
         self.f2 = nn.Linear(1_000, 1_000)
-        self.f3 = nn.Linear(1_000, len(vocab))
+        self.f3 = nn.Linear(1_000, vocab_size)
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
@@ -62,7 +61,7 @@ class Net(nn.Module):
         return x
 
 model = Net().to(device)
-model.load_state_dict(torch.load("models/model_1.pth"))
+model.load_state_dict(torch.load("model.pth"))
 model.eval() # Set the model to evaluation mode
 
 # Run the model
@@ -77,7 +76,7 @@ for _ in range(max_output_length):
     output = torch.softmax(output, dim=0)
     output = torch.argmax(output).item()
 
-    output = vocab[output]
+    output = decode([output])[0]
 
     print(output, end=" ")
     output_string += " " + output
