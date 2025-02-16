@@ -42,19 +42,29 @@ def encode(line, truncate=True):
 def decode(tokens):
     return [vocab[token] for token in tokens]
 
+# Encode the training data
+print("Encoding training data...")
 encoded_train_data = [encode(line, truncate=False) for line in train_data]
 
+# Create X and y
+print("Creating X and y...")
 X, y = [], []
 for line in encoded_train_data:
     for i in range(1, len(line)):
         X.append((line[:i] + [word_to_id["<PAD>"]] * max(max_token_length - i, 0))[-max_token_length:])
         y.append([line[i]])
 
+# Convert to tensors
+print("Converting to tensors...")
 X = torch.tensor(X)
 y = torch.tensor(y)
 
 # Create a dataset and dataloader
+print("Creating dataset and dataloader...")
 dataset = torch.utils.data.TensorDataset(X, y)
 
 # Save the dataset
+print("Saving dataset...")
 torch.save(dataset, "dataset.pth")
+
+print("Done! Created {} training examples.".format(len(X)))
