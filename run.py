@@ -6,7 +6,7 @@ from torchtext.data.utils import get_tokenizer
 
 max_token_length = 9
 max_output_length = 20
-input = "the"
+input = "InsideAR was the largest"
 
 def encode(line):
     tokens = tokenizer(line)
