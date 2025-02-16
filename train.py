@@ -7,7 +7,7 @@ from torchtext.data.utils import get_tokenizer
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 20
-batch_size = 256
+batch_size = 1024
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
@@ -69,6 +69,10 @@ for epoch in range(100):
         loss = criterion(output, y_batch.squeeze())
         loss.backward()
         optimizer.step()
+    
+    # Save the model every 5 epochs
+    if epoch % 5 == 0:
+        torch.save(net.state_dict(), f"models/model_{epoch}.pth")
             
     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
