@@ -6,7 +6,7 @@ from torchtext.data.utils import get_tokenizer
 
 max_token_length = 20
 max_output_length = 50
-input = "A GUI uses"
+input = "An electron"
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
@@ -62,7 +62,7 @@ class Net(nn.Module):
         return x
 
 model = Net().to(device)
-model.load_state_dict(torch.load("model.pth"))
+model.load_state_dict(torch.load("models/model_70.pth"))
 model.eval() # Set the model to evaluation mode
 
 # Run the model
