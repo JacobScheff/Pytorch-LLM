@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 20
-batch_size = 1024
+batch_size = 512
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")

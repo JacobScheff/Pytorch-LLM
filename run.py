@@ -6,7 +6,7 @@ from torchtext.data.utils import get_tokenizer
 
 max_token_length = 20
 max_output_length = 50
-input = "An electron"
+input = "This model suggests that"
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
@@ -39,9 +39,9 @@ class Net(nn.Module):
         self.embed_size = 120
         self.embedding = nn.Embedding(len(vocab), self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(max_token_length * self.embed_size, 10_000)
-        self.f2 = nn.Linear(10_000, 10_000)
-        self.f3 = nn.Linear(10_000, len(vocab))
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 1_000)
+        self.f2 = nn.Linear(1_000, 1_000)
+        self.f3 = nn.Linear(1_000, len(vocab))
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
@@ -62,7 +62,7 @@ class Net(nn.Module):
         return x
 
 model = Net().to(device)
-model.load_state_dict(torch.load("models/model_70.pth"))
+model.load_state_dict(torch.load("models/model_1.pth"))
 model.eval() # Set the model to evaluation mode
 
 # Run the model
