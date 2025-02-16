@@ -6,7 +6,7 @@ from torchtext.data.utils import get_tokenizer
 
 max_token_length = 9
 max_output_length = 20
-input = "InsideAR was the largest"
+input = "The Fearing Mind is"
 
 def encode(line):
     tokens = tokenizer(line)
@@ -37,7 +37,7 @@ class Net(nn.Module):
         self.embed_size = 20
         self.embedding = nn.Embedding(len(vocab), self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 500)
         self.f2 = nn.Linear(500, 500)
         self.f3 = nn.Linear(500, len(vocab))
         self.relu = nn.ReLU()
@@ -45,7 +45,19 @@ class Net(nn.Module):
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=1)
 
     def forward(self, x):
+        vocab_x = self.embedding(x)
+        pos_x = self.positional_embedding(torch.arange(max_token_length))
+        x = vocab_x + pos_x
+
+        x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
+        attn_output, _ = self.attention(x, x, x)
+    
+        x = self.flatten(attn_output.permute(1,0,2))
         
+        x = self.relu(self.f1(x))
+        x = self.relu(self.f2(x))
+        x = self.f3(x)
+        return x
 
 model = Net()
 model.load_state_dict(torch.load("model.pth"))
