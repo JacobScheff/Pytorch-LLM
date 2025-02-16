@@ -28,7 +28,9 @@ def encode(line, truncate=True):
     return tokens
 
 def decode(tokens):
-    return tokenizer.convert_ids_to_tokens(tokens)
+    output = tokenizer.convert_ids_to_tokens(tokens)
+    output = [token.replace("Ġ", " ") for token in output]
+    return output
 
 # Load the model
 print("Loading model...")
@@ -66,7 +68,7 @@ model.eval() # Set the model to evaluation mode
 
 # Run the model
 print("Running...")
-print(input, end=" ")
+print(input, end="")
 
 output_string = input
 for _ in range(max_output_length):
@@ -78,5 +80,5 @@ for _ in range(max_output_length):
 
     output = decode([output])[0]
 
-    print(output, end=" ")
-    output_string += " " + output
+    print(output, end="")
+    output_string += "" + output
