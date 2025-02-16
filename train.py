@@ -65,7 +65,7 @@ print(f"Total parameters: {total_params:,}")
 print("Training model...")
 criterion = nn.CrossEntropyLoss() # Automatically applies softmax
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-
+print("TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 for epoch in range(100):
     if epoch == 50:
         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
