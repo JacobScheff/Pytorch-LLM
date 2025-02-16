@@ -12,9 +12,9 @@ batch_size = 2
 train_data = [
     "this is a sentence",
     "two words",
-    # "three words here",
-    # "there are five words here",
-    # "the quick brown fox jumps over the lazy dog",
+    "three words here",
+    "there are five words here",
+    "the quick brown fox jumps over the lazy dog",
 ]
 
 # Create a tokenizer based off of the training data
@@ -73,7 +73,6 @@ class Net(nn.Module):
         self.f2 = nn.Linear(500, 500)
         self.f3 = nn.Linear(500, len(vocab))
         self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
         self.flatten = nn.Flatten()
 
     def forward(self, x):
@@ -91,23 +90,25 @@ class Net(nn.Module):
             x = self.relu(x)
         
         x = self.f3(x)
-        x = self.softmax(x)
         return x
     
 net = Net()
 
 # Train the model
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss() # Automatically applies softmax
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 
 for epoch in range(100):
+    if epoch == 50:
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+
     for X_batch, y_batch in dataloader:
         optimizer.zero_grad()
         output = net(X_batch)
         loss = criterion(output, y_batch.squeeze())
         loss.backward()
         optimizer.step()
-        
+            
     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
 # Save the model
