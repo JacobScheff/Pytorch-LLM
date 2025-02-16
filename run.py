@@ -6,7 +6,7 @@ from torchtext.data.utils import get_tokenizer
 
 max_token_length = 9
 max_output_length = 20
-input = "The Fearing Mind is"
+input = "the fearing mind is"
 
 def encode(line):
     tokens = tokenizer(line)
@@ -67,9 +67,9 @@ model.eval() # Set the model to evaluation mode
 print("Running...")
 print(input, end=" ")
 
-total_input = input
+output_string = input
 for _ in range(max_output_length):
-    encoded_input = encode(total_input)
+    encoded_input = encode(output_string)
 
     output = model(torch.tensor([encoded_input]))[0]
     output = torch.softmax(output, dim=0)
@@ -78,4 +78,4 @@ for _ in range(max_output_length):
     output = vocab[output]
 
     print(output, end=" ")
-    total_input += " " + output
+    output_string += " " + output

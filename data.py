@@ -30,11 +30,11 @@ vocab.append("<UNK>")
 torch.save(word_to_id, "word_to_id.pth")
 torch.save(vocab, "vocab.pth")
 
-def encode(line):
+def encode(line, truncate=True):
     tokens = tokenizer(line)
     tokens = [word_to_id.get(token, word_to_id["<UNK>"]) for token in tokens]
     tokens += [word_to_id["<PAD>"]] * (max_token_length - len(tokens))
-    if len(tokens) > max_token_length:
+    if truncate and len(tokens) > max_token_length:
         # Remove the first tokens
         tokens = tokens[-max_token_length:]
     return tokens
@@ -42,16 +42,12 @@ def encode(line):
 def decode(tokens):
     return [vocab[token] for token in tokens]
 
-encoded_train_data = [encode(line) for line in train_data]
+encoded_train_data = [encode(line, truncate=False) for line in train_data]
 
 X, y = [], []
 for line in encoded_train_data:
     for i in range(1, len(line)):
-        # Stop at the first padding token
-        if line[i] == word_to_id["<PAD>"]:
-            break
-
-        X.append(line[:i] + [word_to_id["<PAD>"]] * (max_token_length - i))
+        X.append((line[:i] + [word_to_id["<PAD>"]] * max(max_token_length - i, 0))[-max_token_length:])
         y.append([line[i]])
 
 X = torch.tensor(X)
