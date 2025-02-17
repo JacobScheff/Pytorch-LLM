@@ -33,18 +33,21 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.embed_size = 120
-        self.embedding = nn.Embedding(vocab_size, self.embed_size)
+        self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(max_token_length * self.embed_size, 1_000)
-        self.f2 = nn.Linear(1_000, 1_000)
-        self.f3 = nn.Linear(1_000, vocab_size)
-        self.relu = nn.ReLU()
-        self.flatten = nn.Flatten()
-        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True)
         self.pos_indices = torch.arange(max_token_length).to(device)
 
+        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=12, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
+
+        self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
+        self.feed_forward = nn.Sequential(
+            nn.Linear(self.embed_size, self.embed_size * 4),
+            nn.ReLU(),
+            nn.Linear(self.embed_size * 4, self.embed_size)
+        ) # outputs: (batch_size, seq_len, embed_size)
+
     def forward(self, x):
-        vocab_x = self.embedding(x)
+        vocab_x = self.token_embedding(x)
         pos_x = self.positional_embedding(self.pos_indices)
         x = vocab_x + pos_x
 
