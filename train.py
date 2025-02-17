@@ -34,7 +34,7 @@ class AttentionBlock(nn.Module):
         super(AttentionBlock, self).__init__()
         self.embed_size = embed_size
 
-        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=96, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
+        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=48, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
         self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
         self.feed_forward = nn.Sequential(
             nn.Linear(self.embed_size, self.embed_size * 4),
@@ -58,7 +58,7 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.embed_size = 192
-        self.num_attention_blocks = 96
+        self.num_attention_blocks = 48
 
         self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
@@ -92,34 +92,34 @@ net = Net().to(device)
 total_params = sum(p.numel() for p in net.parameters())
 print(f"Total parameters: {total_params:,}")
 
-# # Train the model
-# print("Training model...")
-# criterion = nn.CrossEntropyLoss() # Automatically applies softmax
-# optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-# # for epoch in range(100):
-# for epoch in range(1):
-#     if epoch == 50:
-#         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+# Train the model
+print("Training model...")
+criterion = nn.CrossEntropyLoss() # Automatically applies softmax
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+# for epoch in range(100):
+for epoch in range(1):
+    if epoch == 50:
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
-#     # Create a progress bar with a loss label
-#     # bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
+    # Create a progress bar with a loss label
+    bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
 
-#     # for i, (X_batch, y_batch) in bar:
-#     for X_batch, y_batch in dataloader:
-#         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-#         optimizer.zero_grad()
-#         output = net(X_batch)
-#         loss = criterion(output, y_batch.flatten())
-#         loss.backward()
-#         optimizer.step()
-#         # bar.set_postfix(loss=loss.item())
+    for i, (X_batch, y_batch) in bar:
+    # for X_batch, y_batch in dataloader:
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+        optimizer.zero_grad()
+        output = net(X_batch)
+        loss = criterion(output, y_batch.flatten())
+        loss.backward()
+        optimizer.step()
+        bar.set_postfix(loss=loss.item())
 
-#     # Save the model every few epochs
-#     # if (epoch + 1) % 1 == 0:
-#     #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
+    # Save the model every few epochs
+    # if (epoch + 1) % 1 == 0:
+    #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
 
-#     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
+    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
-# # Save the model
-# # print("Saving model...")
-# # torch.save(net.state_dict(), "model.pth")
+# Save the model
+# print("Saving model...")
+# torch.save(net.state_dict(), "model.pth")
