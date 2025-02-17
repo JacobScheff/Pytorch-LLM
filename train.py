@@ -27,23 +27,47 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
 vocab_size = len(tokenizer)
 
-# Create the model - from https://www.baeldung.com/wp-content/uploads/sites/4/2024/01/chatgpt_arh.png
+# Create the model
 print("Creating model...")
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.embed_size = 120
-        self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
-        self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.pos_indices = torch.arange(max_token_length).to(device)
+class AttentionBlock(nn.Module):
+    def __init__(self, embed_size, device="cpu"):
+        super(AttentionBlock, self).__init__()
+        self.embed_size = embed_size
 
-        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=12, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
+        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=96, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
         self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
         self.feed_forward = nn.Sequential(
             nn.Linear(self.embed_size, self.embed_size * 4),
             nn.ReLU(),
             nn.Linear(self.embed_size * 4, self.embed_size)
         ) # outputs: (batch_size, seq_len, embed_size)
+
+    def forward(self, x):    
+        attn_output, _ = self.multi_head_attention(x, x, x)
+        x = x + attn_output
+
+        x = self.normaliztion(x)
+
+        feed_forward_output = self.feed_forward(x)
+        x = x + feed_forward_output
+
+        x = self.normaliztion(x)
+        return x
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.embed_size = 192
+        self.num_attention_blocks = 96
+
+        self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
+        self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
+        self.pos_indices = torch.arange(max_token_length).to(device)
+
+        self.attention_blocks = nn.ModuleList([
+            AttentionBlock(self.embed_size, device=device)
+            for _ in range(self.num_attention_blocks)
+        ])
 
         self.flatten = nn.Flatten() # outputs: (batch_size, seq_len * embed_size)
         self.linear = nn.Linear(max_token_length * self.embed_size, vocab_size) # outputs: (batch_size, vocab_size)
@@ -53,16 +77,9 @@ class Net(nn.Module):
         pos_x = self.positional_embedding(self.pos_indices)
         x = token_x + pos_x
 
-        for _ in range(1):
-            attn_output, _ = self.multi_head_attention(x, x, x)
-            x = x + attn_output
-
-            x = self.normaliztion(x)
-
-            feed_forward_output = self.feed_forward(x)
-            x = x + feed_forward_output
-
-            x = self.normaliztion(x)
+        # Iterate through the attention blocks
+        for block in self.attention_blocks:
+            x = block(x)
 
         x = self.flatten(x)
         x = self.linear(x)
