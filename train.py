@@ -6,97 +6,92 @@ from torchtext.data.utils import get_tokenizer
 from tqdm.auto import tqdm
 from transformers import GPT2Tokenizer
 
-if __name__ == "__main__":
+torch.manual_seed(0) # Set seed for reproducibility
 
-    torch.manual_seed(0) # Set seed for reproducibility
+max_token_length = 20
+batch_size = 64
 
-    max_token_length = 20
-    batch_size = 2048
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+print(f"Using {device} device")
+if device == "cuda":
+    print(f"Device ID: {torch.cuda.current_device()}")
+    print(f"Device Name: {torch.cuda.get_device_name(torch.cuda.current_device())}")
 
-    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-    print(f"Using {device} device")
-    if device == "cuda":
-        print(f"Device ID: {torch.cuda.current_device()}")
-        print(f"Device Name: {torch.cuda.get_device_name(torch.cuda.current_device())}")
+# Load the training data
+print("Loading training data...")
+dataset = torch.load("dataset.pth", weights_only=False)
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    # Load the training data
-    print("Loading training data...")
-    dataset = torch.load("dataset.pth", weights_only=False)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+# Load the tokenizer
+print("Loading tokenizer...")
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
+vocab_size = len(tokenizer)
 
-    # Load the tokenizer
-    print("Loading tokenizer...")
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
-    vocab_size = len(tokenizer)
+# Create the model
+print("Creating model...")
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.embed_size = 120
+        self.embedding = nn.Embedding(vocab_size, self.embed_size)
+        self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 1_000)
+        self.f2 = nn.Linear(1_000, 1_000)
+        self.f3 = nn.Linear(1_000, vocab_size)
+        self.relu = nn.ReLU()
+        self.flatten = nn.Flatten()
+        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
+        self.pos_indices = torch.arange(max_token_length).to(device)
 
-    # Create the model
-    print("Creating model...")
-    class Net(nn.Module):
-        def __init__(self):
-            super(Net, self).__init__()
-            self.embed_size = 120
-            self.embedding = nn.Embedding(vocab_size, self.embed_size)
-            self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-            self.f1 = nn.Linear(max_token_length * self.embed_size, 2_000)
-            self.f2 = nn.Linear(2_000, 2_000)
-            self.f3 = nn.Linear(2_000, vocab_size)
-            self.relu = nn.ReLU()
-            self.flatten = nn.Flatten()
-            self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
-            self.pos_indices = torch.arange(max_token_length).to(device)
+    def forward(self, x):
+        vocab_x = self.embedding(x)
+        pos_x = self.positional_embedding(self.pos_indices)
+        x = vocab_x + pos_x
 
-        def forward(self, x):
-            vocab_x = self.embedding(x)
-            pos_x = self.positional_embedding(self.pos_indices)
-            x = vocab_x + pos_x
+        x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
+        attn_output, _ = self.attention(x, x, x)
 
-            x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
-            attn_output, _ = self.attention(x, x, x)
+        x = self.flatten(attn_output.permute(1,0,2))
 
-            x = self.flatten(attn_output.permute(1,0,2))
+        x = self.relu(self.f1(x))
+        x = self.relu(self.f2(x))
+        x = self.f3(x)
+        return x
 
-            x = self.relu(self.f1(x))
-            x = self.relu(self.f2(x))
-            x = self.f3(x)
-            return x
+net = Net().to(device)
 
-    net = Net().to(device)
+# Print the total number of parameters
+total_params = sum(p.numel() for p in net.parameters())
+print(f"Total parameters: {total_params:,}")
 
-    # Print the total number of parameters
-    total_params = sum(p.numel() for p in net.parameters())
-    print(f"Total parameters: {total_params:,}")
+# Train the model
+print("Training model...")
+criterion = nn.CrossEntropyLoss() # Automatically applies softmax
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+for epoch in range(100):
+    if epoch == 50:
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
-    # Train the model
-    print("Training model...")
-    criterion = nn.CrossEntropyLoss() # Automatically applies softmax
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-    scaler = torch.cuda.amp.GradScaler()
-    for epoch in range(100):
-        if epoch == 50:
-            optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+    # Create a progress bar with a loss label
+    # bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
 
-        # Create a progress bar with a loss label
-        bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
+    # for i, (X_batch, y_batch) in bar:
+    for X_batch, y_batch in dataloader:
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+        optimizer.zero_grad()
+        output = net(X_batch)
+        loss = criterion(output, y_batch.flatten())
+        loss.backward()
+        optimizer.step()
+        # bar.set_postfix(loss=loss.item())
 
-        for i, (X_batch, y_batch) in bar:
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-            optimizer.zero_grad()
-            with torch.cuda.amp.autocast():  # Enable autocasting
-                output = net(X_batch)
-                loss = criterion(output, y_batch.squeeze())
+    # Save the model every few epochs
+    # if (epoch + 1) % 1 == 0:
+    #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
 
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
-            bar.set_postfix(loss=loss.item())
-
-        # Save the model every few epochs
-        if (epoch + 1) % 1 == 0:
-            torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
-
-        print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
-
-    # Save the model
-    torch.save(net.state_dict(), "model.pth")
+# Save the model
+print("Saving model...")
+# torch.save(net.state_dict(), "model.pth")
