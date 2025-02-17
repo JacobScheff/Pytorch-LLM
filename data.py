@@ -42,8 +42,6 @@ print("Creating X and y...")
 X, y = [], []
 for line in tqdm(encoded_train_data):
     for i in range(1, len(line)):
-        # TODO: Doesn't stop with <PAD> token probably
-        print("TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         X.append((line[:i] + [tokenizer.pad_token_id] * max(max_token_length - i, 0))[-max_token_length:])
         y.append([line[i]])
 
