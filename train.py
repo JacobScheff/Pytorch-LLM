@@ -58,7 +58,7 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.embed_size = 192
-        self.num_attention_blocks = 48
+        self.num_attention_blocks = 8
 
         self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
@@ -84,7 +84,7 @@ class Net(nn.Module):
         x = self.flatten(x)
         x = self.linear(x)
 
-        return x # Softmax is automatically applied in the loss function        
+        return x # Softmax is automatically applied in the loss function
 
 net = Net().to(device)
 

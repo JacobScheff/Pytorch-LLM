@@ -34,36 +34,65 @@ def decode(tokens):
 
 # Load the model
 print("Loading model...")
+class AttentionBlock(nn.Module):
+    def __init__(self, embed_size, device="cpu"):
+        super(AttentionBlock, self).__init__()
+        self.embed_size = embed_size
+
+        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
+        self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
+        self.feed_forward = nn.Sequential(
+            nn.Linear(self.embed_size, self.embed_size * 4),
+            nn.ReLU(),
+            nn.Linear(self.embed_size * 4, self.embed_size)
+        ) # outputs: (batch_size, seq_len, embed_size)
+
+    def forward(self, x):    
+        attn_output, _ = self.multi_head_attention(x, x, x)
+        x = x + attn_output
+
+        x = self.normaliztion(x)
+
+        feed_forward_output = self.feed_forward(x)
+        x = x + feed_forward_output
+
+        x = self.normaliztion(x)
+        return x
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.embed_size = 120
-        self.embedding = nn.Embedding(vocab_size, self.embed_size)
+        self.embed_size = 192
+        self.num_attention_blocks = 8
+
+        self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(max_token_length * self.embed_size, 2_000)
-        self.f2 = nn.Linear(2_000, 2_000)
-        self.f3 = nn.Linear(2_000, vocab_size)
-        self.relu = nn.ReLU()
-        self.flatten = nn.Flatten()
-        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
+        self.pos_indices = torch.arange(max_token_length).to(device)
+
+        self.attention_blocks = nn.ModuleList([
+            AttentionBlock(self.embed_size, device=device)
+            for _ in range(self.num_attention_blocks)
+        ])
+
+        self.flatten = nn.Flatten() # outputs: (batch_size, seq_len * embed_size)
+        self.linear = nn.Linear(max_token_length * self.embed_size, vocab_size) # outputs: (batch_size, vocab_size)
 
     def forward(self, x):
-        vocab_x = self.embedding(x)
-        pos_x = self.positional_embedding(torch.arange(max_token_length).to(device))
-        x = vocab_x + pos_x
+        token_x = self.token_embedding(x)
+        pos_x = self.positional_embedding(self.pos_indices)
+        x = token_x + pos_x
 
-        x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
-        attn_output, _ = self.attention(x, x, x)
-    
-        x = self.flatten(attn_output.permute(1,0,2))
-        
-        x = self.relu(self.f1(x))
-        x = self.relu(self.f2(x))
-        x = self.f3(x)
-        return x
+        # Iterate through the attention blocks
+        for block in self.attention_blocks:
+            x = block(x)
+
+        x = self.flatten(x)
+        x = self.linear(x)
+
+        return x # Softmax is automatically applied in the loss function
 
 model = Net().to(device)
-model.load_state_dict(torch.load("models/model_1.pth"))
+model.load_state_dict(torch.load("model.pth"))
 model.eval() # Set the model to evaluation mode
 
 # Run the model
