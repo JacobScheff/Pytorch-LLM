@@ -68,6 +68,7 @@ print(f"Total parameters: {total_params:,}")
 print("Training model...")
 criterion = nn.CrossEntropyLoss() # Automatically applies softmax
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+scaler = torch.cuda.amp.GradScaler()
 for epoch in range(100):
     if epoch == 50:
         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
@@ -78,10 +79,13 @@ for epoch in range(100):
     for i, (X_batch, y_batch) in bar:
         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
-        output = net(X_batch)
-        loss = criterion(output, y_batch.squeeze())
-        loss.backward()
-        optimizer.step()
+        with torch.cuda.amp.autocast():  # Enable autocasting
+            output = net(X_batch)
+            loss = criterion(output, y_batch.squeeze())
+
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
         bar.set_postfix(loss=loss.item())
     
