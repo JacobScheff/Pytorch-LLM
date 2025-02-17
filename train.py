@@ -27,7 +27,7 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
 vocab_size = len(tokenizer)
 
-# Create the model
+# Create the model - from https://www.baeldung.com/wp-content/uploads/sites/4/2024/01/chatgpt_arh.png
 print("Creating model...")
 class Net(nn.Module):
     def __init__(self):
