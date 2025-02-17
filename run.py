@@ -40,9 +40,9 @@ class Net(nn.Module):
         self.embed_size = 120
         self.embedding = nn.Embedding(vocab_size, self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(max_token_length * self.embed_size, 1_000)
-        self.f2 = nn.Linear(1_000, 1_000)
-        self.f3 = nn.Linear(1_000, vocab_size)
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 2_000)
+        self.f2 = nn.Linear(2_000, 2_000)
+        self.f3 = nn.Linear(2_000, vocab_size)
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
@@ -63,7 +63,7 @@ class Net(nn.Module):
         return x
 
 model = Net().to(device)
-model.load_state_dict(torch.load("model.pth"))
+model.load_state_dict(torch.load("models/model_1.pth"))
 model.eval() # Set the model to evaluation mode
 
 # Run the model

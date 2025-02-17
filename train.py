@@ -13,6 +13,7 @@ batch_size = 256
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
+# TODO: Print the device id or name to make sure it is using the GPU
 
 # Load the training data
 print("Loading training data...")
