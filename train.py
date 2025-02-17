@@ -9,7 +9,7 @@ from transformers import GPT2Tokenizer
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 20
-batch_size = 64
+batch_size = 256
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
@@ -33,9 +33,9 @@ class Net(nn.Module):
         self.embed_size = 120
         self.embedding = nn.Embedding(vocab_size, self.embed_size)
         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.f1 = nn.Linear(max_token_length * self.embed_size, 1_000)
-        self.f2 = nn.Linear(1_000, 1_000)
-        self.f3 = nn.Linear(1_000, vocab_size)
+        self.f1 = nn.Linear(max_token_length * self.embed_size, 2_000)
+        self.f2 = nn.Linear(2_000, 2_000)
+        self.f3 = nn.Linear(2_000, vocab_size)
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
@@ -69,17 +69,22 @@ for epoch in range(100):
     if epoch == 50:
         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
-    for X_batch, y_batch in (dataloader):
+    # Create a progress bar with a loss label
+    bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
+
+    for i, (X_batch, y_batch) in bar:
         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
         output = net(X_batch)
         loss = criterion(output, y_batch.squeeze())
         loss.backward()
         optimizer.step()
+
+        bar.set_postfix(loss=loss.item())
     
     # Save the model every few epochs
-    # if (epoch + 1) % 5 == 0:
-    #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
+    if (epoch + 1) % 1 == 0:
+        torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
             
     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
