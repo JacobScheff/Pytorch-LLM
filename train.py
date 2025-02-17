@@ -20,7 +20,7 @@ if device == "cuda":
 # Load the training data
 print("Loading training data...")
 dataset = torch.load("dataset.pth", weights_only=False)
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 
 # Load the tokenizer
 print("Loading tokenizer...")
