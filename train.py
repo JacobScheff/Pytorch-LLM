@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision import datasets
 from torchtext.data.utils import get_tokenizer
 from tqdm.auto import tqdm
 from transformers import GPT2Tokenizer
@@ -41,7 +40,7 @@ class Net(nn.Module):
         self.f3 = nn.Linear(1_000, vocab_size)
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
-        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
+        self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True)
         self.pos_indices = torch.arange(max_token_length).to(device)
 
     def forward(self, x):
@@ -49,10 +48,8 @@ class Net(nn.Module):
         pos_x = self.positional_embedding(self.pos_indices)
         x = vocab_x + pos_x
 
-        x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
         attn_output, _ = self.attention(x, x, x)
-
-        x = self.flatten(attn_output.permute(1,0,2))
+        x = self.flatten(attn_output)
 
         x = self.relu(self.f1(x))
         x = self.relu(self.f2(x))
@@ -69,7 +66,8 @@ print(f"Total parameters: {total_params:,}")
 print("Training model...")
 criterion = nn.CrossEntropyLoss() # Automatically applies softmax
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-for epoch in range(100):
+# for epoch in range(100):
+for epoch in range(1):
     if epoch == 50:
         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
@@ -93,5 +91,5 @@ for epoch in range(100):
     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
 # Save the model
-print("Saving model...")
+# print("Saving model...")
 # torch.save(net.state_dict(), "model.pth")
