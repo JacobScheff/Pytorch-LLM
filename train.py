@@ -9,7 +9,7 @@ from transformers import GPT2Tokenizer
 torch.manual_seed(0) # Set seed for reproducibility
 
 max_token_length = 20
-batch_size = 256
+batch_size = 1024
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
