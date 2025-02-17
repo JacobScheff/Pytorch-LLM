@@ -42,10 +42,11 @@ class Net(nn.Module):
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
         self.attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device)
+        self.pos_indices = torch.arange(max_token_length).to(device)
 
     def forward(self, x):
         vocab_x = self.embedding(x)
-        pos_x = self.positional_embedding(torch.arange(max_token_length).to(device))
+        pos_x = self.positional_embedding(self.pos_indices)
         x = vocab_x + pos_x
 
         x = x.permute(1, 0, 2) # Change to (seq_len, batch, embed_size)
