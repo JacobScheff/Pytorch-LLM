@@ -43,9 +43,9 @@ class AttentionBlock(nn.Module):
         ) # outputs: (batch_size, seq_len, embed_size)
 
     def forward(self, x):    
-        # mask the padding tokens
-        mask = (x == tokenizer.pad_token_id)
-        attn_output, _ = self.multi_head_attention(x, x, x, attn_mask=mask) # outputs: (batch_size, seq_len, embed_size)
+        # Create mask for padding tokens. This needs to be a byte tensor
+        mask = (x == tokenizer.pad_token_id).to(device)  # Move mask to the same device as the input
+        attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask) # outputs: (batch_size, seq_len, embed_size)
         x = x + attn_output
 
         x = self.normaliztion(x)
