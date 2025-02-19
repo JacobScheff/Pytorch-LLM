@@ -84,7 +84,16 @@ class Net(nn.Module):
 
         x = self.linear(x)
 
-        return x # Softmax is automatically applied in the loss function
+        # Get the predicted token index based on padding and max_token_length
+        predicted_token_index = [max_token_length - 1 - (x == tokenizer.pad_token_id).sum(dim=1)
+            for i in range(len(x))
+        ]
+        predicted_token_index = torch.stack(predicted_token_index).to(device)
+
+        # Get the predicted token
+        predicted_token = x[torch.arange(x.size(0)), predicted_token_index]
+
+        return predicted_token # Softmax is automatically applied in the loss function
 
 net = Net().to(device)
 
@@ -92,33 +101,33 @@ net = Net().to(device)
 total_params = sum(p.numel() for p in net.parameters())
 print(f"Total parameters: {total_params:,}")
 
-# # Train the model
-# print("Training model...")
-# criterion = nn.CrossEntropyLoss() # Automatically applies softmax
-# optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-# for epoch in range(100):
-#     if epoch == 50:
-#         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+# Train the model
+print("Training model...")
+criterion = nn.CrossEntropyLoss() # Automatically applies softmax
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+for epoch in range(100):
+    if epoch == 50:
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
-#     # Create a progress bar with a loss label
-#     # bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
+    # Create a progress bar with a loss label
+    # bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
 
-#     # for i, (X_batch, y_batch) in bar:
-#     for X_batch, y_batch in dataloader:
-#         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-#         optimizer.zero_grad()
-#         output = net(X_batch)
-#         loss = criterion(output, y_batch.flatten())
-#         loss.backward()
-#         optimizer.step()
-#         # bar.set_postfix(loss=loss.item())
+    # for i, (X_batch, y_batch) in bar:
+    for X_batch, y_batch in dataloader:
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+        optimizer.zero_grad()
+        output = net(X_batch)
+        loss = criterion(output, y_batch.flatten())
+        loss.backward()
+        optimizer.step()
+        # bar.set_postfix(loss=loss.item())
 
-#     # Save the model every few epochs
-#     # if (epoch + 1) % 1 == 0:
-#     #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
+    # Save the model every few epochs
+    # if (epoch + 1) % 1 == 0:
+    #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
 
-#     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
+    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
-# # Save the model
-# print("Saving model...")
-# torch.save(net.state_dict(), "model.pth")
+# Save the model
+print("Saving model...")
+torch.save(net.state_dict(), "model.pth")
