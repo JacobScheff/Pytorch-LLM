@@ -44,7 +44,6 @@ class AttentionBlock(nn.Module):
 
     def forward(self, x):    
         # mask the padding tokens
-        # TODO: Make sure this works
         mask = (x == tokenizer.pad_token_id)
         attn_output, _ = self.multi_head_attention(x, x, x, attn_mask=mask) # outputs: (batch_size, seq_len, embed_size)
         x = x + attn_output
@@ -56,7 +55,7 @@ class AttentionBlock(nn.Module):
 
         x = self.normaliztion(x)
         return x
-print("TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
