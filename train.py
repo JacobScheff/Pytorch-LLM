@@ -46,8 +46,6 @@ class AttentionBlock(nn.Module):
         # mask the padding tokens
         # TODO: Make sure this works
         mask = (x == tokenizer.pad_token_id)
-        mask = mask.T
-        x = x.T
         attn_output, _ = self.multi_head_attention(x, x, x, attn_mask=mask) # outputs: (batch_size, seq_len, embed_size)
         x = x + attn_output
 
