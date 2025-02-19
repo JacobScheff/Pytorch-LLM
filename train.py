@@ -57,7 +57,7 @@ class AttentionBlock(nn.Module):
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.embed_size = 192
+        self.embed_size = 256
         self.num_attention_blocks = 8
 
         self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
