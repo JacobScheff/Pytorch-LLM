@@ -39,12 +39,17 @@ for line in tqdm(train_data):
 # Create X and y
 print("Creating X and y...")
 X, y = [], []
-for line in (encoded_train_data):
+for line in tqdm(encoded_train_data):
     # Calculate the number of tokens past the max_token_length
     extra_tokens = len(line) - max_token_length
     if extra_tokens <= 0:
-        # Line is shorter than or equal to max_token_length
-        print("todo!")
+        eos_index = line.index(tokenizer.eos_token_id)
+        x_line = line[:eos_index]
+        x_line += [tokenizer.pad_token_id] * (max_token_length - len(x_line))
+        X.append(x_line)
+        y_line = line[1:eos_index+1]
+        y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
+        y.append(y_line)
     else:
         # Line is longer than max_token
         for i in range(extra_tokens):
@@ -53,20 +58,17 @@ for line in (encoded_train_data):
             y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
             y.append(y_line)
 
-# print(X)
-# print(y)
+# Convert to tensors
+print("Converting to tensors...")
+X = torch.tensor(X)
+y = torch.tensor(y)
 
-# # Convert to tensors
-# print("Converting to tensors...")
-# X = torch.tensor(X)
-# y = torch.tensor(y)
+# Create a dataset and dataloader
+print("Creating dataset and dataloader...")
+dataset = torch.utils.data.TensorDataset(X, y)
 
-# # Create a dataset and dataloader
-# print("Creating dataset and dataloader...")
-# dataset = torch.utils.data.TensorDataset(X, y)
+# Save the dataset
+print("Saving dataset...")
+torch.save(dataset, "dataset.pth")
 
-# # Save the dataset
-# print("Saving dataset...")
-# torch.save(dataset, "dataset.pth")
-
-# print("Done! Created {} training examples.".format(len(X)))
+print("Done! Created {} training examples.".format(len(X)))
