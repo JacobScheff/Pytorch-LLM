@@ -10,7 +10,7 @@ max_token_length = 20
 
 # Load the training data
 print("Loading training data...")
-train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[:1]
+train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[2:3]
 
 # Load the tokenizer
 print("Loading tokenizer...")
@@ -42,12 +42,14 @@ X, y = [], []
 for line in tqdm(encoded_train_data):
     # Calculate the number of tokens past the max_token_length
     extra_tokens = len(line) - max_token_length
-    for i in range(extra_tokens + 1):
+    for i in range(extra_tokens):
         X.append(line[i:i+max_token_length])
-        y.append(line[i+1:i+max_token_length+1] + [tokenizer.pad_token_id] if line[i+1+max_token_length] == tokenizer.pad_token_id else tokenizer.eos_token_id)
+        y_line = line[i+1:i+max_token_length+1]
+        y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
+        y.append(y_line)
 
-print(X)
-print(y)
+print(X[7])
+print(y[7])
 
 # # Convert to tensors
 # print("Converting to tensors...")

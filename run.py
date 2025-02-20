@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets
-from torchtext.data.utils import get_tokenizer
 from transformers import GPT2Tokenizer
 
 max_token_length = 20
