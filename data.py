@@ -10,21 +10,21 @@ max_token_length = 20
 
 # Load the training data
 print("Loading training data...")
-train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[:10]
+train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[:1]
 
 # Load the tokenizer
 print("Loading tokenizer...")
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
+tokenizer.add_special_tokens({"bos_token": "<BOS>"}) # Add a BOS token (beginning of sentence)
+tokenizer.add_special_tokens({"eos_token": "<EOS>"}) # Add a EOS token (end of sentence)
 print(f"Vocab size: {len(tokenizer)}")
 
-def encode(line, truncate=True):
+def encode(line):
     tokens = tokenizer.tokenize(line)
     tokens = tokenizer.convert_tokens_to_ids(tokens)
+    tokens = [tokenizer.bos_token_id] + tokens + [tokenizer.eos_token_id]
     tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
-    if truncate and len(tokens) > max_token_length:
-        # Remove the first tokens
-        tokens = tokens[-max_token_length:]
     return tokens
 
 def decode(tokens):
@@ -34,27 +34,32 @@ def decode(tokens):
 print("Encoding training data...")
 encoded_train_data = []
 for line in tqdm(train_data):
-    encoded_train_data.append(encode(line, truncate=False))
+    encoded_train_data.append(encode(line))
 
 # Create X and y
 print("Creating X and y...")
 X, y = [], []
 for line in tqdm(encoded_train_data):
-    for i in range(1, len(line)):
-        X.append((line[:i] + [tokenizer.pad_token_id] * max(max_token_length - i, 0))[-max_token_length:])
-        y.append([line[i]])
+    # Calculate the number of tokens past the max_token_length
+    extra_tokens = len(line) - max_token_length
+    for i in range(extra_tokens + 1):
+        X.append(line[i:i+max_token_length])
+        y.append(line[i+max_token_length if i+max_token_length < len(line) else -1])
 
-# Convert to tensors
-print("Converting to tensors...")
-X = torch.tensor(X)
-y = torch.tensor(y)
+print(X)
+print(y)
 
-# Create a dataset and dataloader
-print("Creating dataset and dataloader...")
-dataset = torch.utils.data.TensorDataset(X, y)
+# # Convert to tensors
+# print("Converting to tensors...")
+# X = torch.tensor(X)
+# y = torch.tensor(y)
 
-# Save the dataset
-print("Saving dataset...")
-torch.save(dataset, "dataset.pth")
+# # Create a dataset and dataloader
+# print("Creating dataset and dataloader...")
+# dataset = torch.utils.data.TensorDataset(X, y)
 
-print("Done! Created {} training examples.".format(len(X)))
+# # Save the dataset
+# print("Saving dataset...")
+# torch.save(dataset, "dataset.pth")
+
+# print("Done! Created {} training examples.".format(len(X)))
