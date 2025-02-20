@@ -44,7 +44,7 @@ for line in tqdm(encoded_train_data):
     extra_tokens = len(line) - max_token_length
     for i in range(extra_tokens + 1):
         X.append(line[i:i+max_token_length])
-        y.append(line[i+max_token_length if i+max_token_length < len(line) else -1])
+        y.append(line[i+1:i+max_token_length+1] + [tokenizer.pad_token_id] if line[i+1+max_token_length] == tokenizer.pad_token_id else tokenizer.eos_token_id)
 
 print(X)
 print(y)
