@@ -10,7 +10,7 @@ max_token_length = 20
 
 # Load the training data
 print("Loading training data...")
-train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[2:3]
+train_data = json.load(open("training_data.json", "r", encoding="utf-8"))
 
 # Load the tokenizer
 print("Loading tokenizer...")
@@ -39,17 +39,22 @@ for line in tqdm(train_data):
 # Create X and y
 print("Creating X and y...")
 X, y = [], []
-for line in tqdm(encoded_train_data):
+for line in (encoded_train_data):
     # Calculate the number of tokens past the max_token_length
     extra_tokens = len(line) - max_token_length
-    for i in range(extra_tokens):
-        X.append(line[i:i+max_token_length])
-        y_line = line[i+1:i+max_token_length+1]
-        y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
-        y.append(y_line)
+    if extra_tokens <= 0:
+        # Line is shorter than or equal to max_token_length
+        print("todo!")
+    else:
+        # Line is longer than max_token
+        for i in range(extra_tokens):
+            X.append(line[i:i+max_token_length])
+            y_line = line[i+1:i+max_token_length+1]
+            y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
+            y.append(y_line)
 
-print(X[7])
-print(y[7])
+# print(X)
+# print(y)
 
 # # Convert to tensors
 # print("Converting to tensors...")
