@@ -104,17 +104,21 @@ for epoch in range(100):
         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
     # Create a progress bar with a loss label
-    # bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
+    bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
 
-    # for i, (X_batch, y_batch) in bar:
-    for X_batch, y_batch in dataloader:
+    for i, (X_batch, y_batch) in bar:
+    # for X_batch, y_batch in dataloader:
         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
         output = net(X_batch)
+
+        # Reshape the output to (batch_size * seq_len, vocab_size)
+        output = output.reshape(-1, vocab_size)
+
         loss = criterion(output, y_batch.flatten())
         loss.backward()
         optimizer.step()
-        # bar.set_postfix(loss=loss.item())
+        bar.set_postfix(loss=loss.item())
 
     # Save the model every few epochs
     # if (epoch + 1) % 1 == 0:
