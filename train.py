@@ -25,6 +25,8 @@ dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 print("Loading tokenizer...")
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
+tokenizer.add_special_tokens({"bos_token": "<BOS>"}) # Add a BOS token (beginning of sentence)
+tokenizer.add_special_tokens({"eos_token": "<EOS>"}) # Add a EOS token (end of sentence)
 vocab_size = len(tokenizer)
 
 # Create the model
