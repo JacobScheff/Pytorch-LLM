@@ -1,136 +1,126 @@
-x_batch = [
-    [1, 2, 3, 4],
-    [2, 3, 1, 5],
-    [1, 2, 3, 6]
-]
+import torch
+from torch import nn
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+from transformers import GPT2Tokenizer
 
-mask = (x_batch == 1)
+torch.manual_seed(0) # Set seed for reproducibility
 
-print(mask)
+max_token_length = 20
+batch_size = 256
 
-# import torch
-# from torch import nn
-# from torch.utils.data import DataLoader
-# from tqdm.auto import tqdm
-# from transformers import GPT2Tokenizer
+# device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+device = "cpu"
+print(f"Using {device} device")
+if device == "cuda":
+    print(f"Device ID: {torch.cuda.current_device()}")
+    print(f"Device Name: {torch.cuda.get_device_name(torch.cuda.current_device())}")
 
-# torch.manual_seed(0) # Set seed for reproducibility
+# Load the training data
+print("Loading training data...")
+dataset = torch.load("dataset.pth", weights_only=False)
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-# max_token_length = 20
-# batch_size = 256
+# Load the tokenizer
+print("Loading tokenizer...")
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
+tokenizer.add_special_tokens({"bos_token": "<BOS>"}) # Add a BOS token (beginning of sentence)
+tokenizer.add_special_tokens({"eos_token": "<EOS>"}) # Add a EOS token (end of sentence)
+vocab_size = len(tokenizer)
 
-# # device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-# device = "cpu"
-# print(f"Using {device} device")
-# if device == "cuda":
-#     print(f"Device ID: {torch.cuda.current_device()}")
-#     print(f"Device Name: {torch.cuda.get_device_name(torch.cuda.current_device())}")
+# Create the model
+print("Creating model...")
+class AttentionBlock(nn.Module):
+    def __init__(self, embed_size, device="cpu"):
+        super(AttentionBlock, self).__init__()
+        self.embed_size = embed_size
 
-# # Load the training data
-# print("Loading training data...")
-# dataset = torch.load("dataset.pth", weights_only=False)
-# dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
+        self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
+        self.feed_forward = nn.Sequential(
+            nn.Linear(self.embed_size, self.embed_size * 4),
+            nn.ReLU(),
+            nn.Linear(self.embed_size * 4, self.embed_size)
+        ) # outputs: (batch_size, seq_len, embed_size)
 
-# # Load the tokenizer
-# print("Loading tokenizer...")
-# tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-# tokenizer.add_special_tokens({"pad_token": "<PAD>"}) # Add a PAD token
-# tokenizer.add_special_tokens({"bos_token": "<BOS>"}) # Add a BOS token (beginning of sentence)
-# tokenizer.add_special_tokens({"eos_token": "<EOS>"}) # Add a EOS token (end of sentence)
-# vocab_size = len(tokenizer)
+    def forward(self, x):    
+        # Create mask for padding tokens. This needs to be a byte tensor
+        mask = (x == tokenizer.pad_token_id).to(device)  # Move mask to the same device as the input
+        attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask) # outputs: (batch_size, seq_len, embed_size)
+        x = x + attn_output
 
-# # Create the model
-# print("Creating model...")
-# class AttentionBlock(nn.Module):
-#     def __init__(self, embed_size, device="cpu"):
-#         super(AttentionBlock, self).__init__()
-#         self.embed_size = embed_size
+        x = self.normaliztion(x)
 
-#         self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
-#         self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
-#         self.feed_forward = nn.Sequential(
-#             nn.Linear(self.embed_size, self.embed_size * 4),
-#             nn.ReLU(),
-#             nn.Linear(self.embed_size * 4, self.embed_size)
-#         ) # outputs: (batch_size, seq_len, embed_size)
+        feed_forward_output = self.feed_forward(x)
+        x = x + feed_forward_output
 
-#     def forward(self, x):    
-#         # Create mask for padding tokens. This needs to be a byte tensor
-#         mask = (x == tokenizer.pad_token_id).to(device)  # Move mask to the same device as the input
-#         attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask) # outputs: (batch_size, seq_len, embed_size)
-#         x = x + attn_output
+        x = self.normaliztion(x)
+        return x
 
-#         x = self.normaliztion(x)
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.embed_size = 256
+        self.num_attention_blocks = 8
 
-#         feed_forward_output = self.feed_forward(x)
-#         x = x + feed_forward_output
+        self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
+        self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
+        self.pos_indices = torch.arange(max_token_length).to(device)
 
-#         x = self.normaliztion(x)
-#         return x
+        self.attention_blocks = nn.ModuleList([
+            AttentionBlock(self.embed_size, device=device)
+            for _ in range(self.num_attention_blocks)
+        ])
 
-# class Net(nn.Module):
-#     def __init__(self):
-#         super(Net, self).__init__()
-#         self.embed_size = 256
-#         self.num_attention_blocks = 8
+        self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, seq_len, vocab_size)
 
-#         self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
-#         self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-#         self.pos_indices = torch.arange(max_token_length).to(device)
+    def forward(self, x):
+        token_x = self.token_embedding(x)
+        pos_x = self.positional_embedding(self.pos_indices)
+        x = token_x + pos_x
 
-#         self.attention_blocks = nn.ModuleList([
-#             AttentionBlock(self.embed_size, device=device)
-#             for _ in range(self.num_attention_blocks)
-#         ])
+        # Iterate through the attention blocks
+        for block in self.attention_blocks:
+            x = block(x)
 
-#         self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, seq_len, vocab_size)
+        x = self.linear(x)
 
-#     def forward(self, x):
-#         token_x = self.token_embedding(x)
-#         pos_x = self.positional_embedding(self.pos_indices)
-#         x = token_x + pos_x
+        return x # Softmax is automatically applied in the loss function
 
-#         # Iterate through the attention blocks
-#         for block in self.attention_blocks:
-#             x = block(x)
+net = Net().to(device)
 
-#         x = self.linear(x)
+# Print the total number of parameters
+total_params = sum(p.numel() for p in net.parameters())
+print(f"Total parameters: {total_params:,}")
 
-#         return x # Softmax is automatically applied in the loss function
+# Train the model
+print("Training model...")
+criterion = nn.CrossEntropyLoss() # Automatically applies softmax
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+for epoch in range(100):
+    if epoch == 50:
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
-# net = Net().to(device)
+    # Create a progress bar with a loss label
+    # bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
 
-# # Print the total number of parameters
-# total_params = sum(p.numel() for p in net.parameters())
-# print(f"Total parameters: {total_params:,}")
+    # for i, (X_batch, y_batch) in bar:
+    for X_batch, y_batch in dataloader:
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+        optimizer.zero_grad()
+        output = net(X_batch)
+        loss = criterion(output, y_batch.flatten())
+        loss.backward()
+        optimizer.step()
+        # bar.set_postfix(loss=loss.item())
 
-# # Train the model
-# print("Training model...")
-# criterion = nn.CrossEntropyLoss() # Automatically applies softmax
-# optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-# for epoch in range(100):
-#     if epoch == 50:
-#         optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+    # Save the model every few epochs
+    # if (epoch + 1) % 1 == 0:
+    #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
 
-#     # Create a progress bar with a loss label
-#     # bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
+    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
-#     # for i, (X_batch, y_batch) in bar:
-#     for X_batch, y_batch in dataloader:
-#         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-#         optimizer.zero_grad()
-#         output = net(X_batch)
-#         loss = criterion(output, y_batch.flatten())
-#         loss.backward()
-#         optimizer.step()
-#         # bar.set_postfix(loss=loss.item())
-
-#     # Save the model every few epochs
-#     # if (epoch + 1) % 1 == 0:
-#     #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
-
-#     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
-
-# # Save the model
-# print("Saving model...")
-# torch.save(net.state_dict(), "model.pth")
+# Save the model
+print("Saving model...")
+torch.save(net.state_dict(), "model.pth")
