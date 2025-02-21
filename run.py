@@ -5,7 +5,7 @@ from torchvision import datasets
 from transformers import GPT2Tokenizer
 
 max_token_length = 20
-max_output_length = 50
+max_output_length = 5
 input = "InsideAR"
 
 # device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
@@ -29,6 +29,10 @@ def encode(line):
 
 def decode(tokens):
     return tokenizer.convert_ids_to_tokens(tokens)
+
+def get_token_count(line):
+    tokens = tokenizer.tokenize(line)
+    return len(tokens)
 
 # Load the model
 print("Loading model...")
@@ -94,19 +98,22 @@ model = Net().to(device)
 model.load_state_dict(torch.load("model.pth"))
 model.eval() # Set the model to evaluation mode
 
-# # Run the model
-# print("Running...")
-# print(input, end="")
+# Run the model
+print("Running...")
+print(input, end="")
 
-# output_string = input
-# for _ in range(max_output_length):
-#     encoded_input = encode(output_string)
+output_string = input
+for _ in range(max_output_length):
+    encoded_input = encode(output_string)
 
-#     output = model(torch.tensor([encoded_input]).to(device))[0]
-#     output = torch.softmax(output, dim=0)
-#     output = torch.argmax(output).item()
+    output = model(torch.tensor([encoded_input]).to(device))[0]
+    predicted_token_index = get_token_count(output_string)
+    output = output[predicted_token_index]
+    output = torch.softmax(output, dim=0)
+    output = torch.argmax(output).item()
 
-#     output = decode([output])[0]
+    output = decode([output])[0]
+    output = output.replace("Ġ", " ")
 
-#     print(output, end="")
-#     output_string += "" + output
+    print(output, end="")
+    output_string += "" + output
