@@ -5,7 +5,7 @@ from torchvision import datasets
 from transformers import GPT2Tokenizer
 
 max_token_length = 20
-max_output_length = 50
+max_output_length = 100
 input = "InsideAR"
 
 # device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
@@ -122,3 +122,6 @@ for _ in range(max_output_length):
     predicted_token_index += 1
     if predicted_token_index >= max_token_length:
         predicted_token_index = max_token_length - 1
+    
+    if output == "<EOS>":
+        break
