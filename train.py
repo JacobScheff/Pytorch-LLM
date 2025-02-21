@@ -71,7 +71,7 @@ class Net(nn.Module):
             for _ in range(self.num_attention_blocks)
         ])
 
-        self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, vocab_size)
+        self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, seq_len, vocab_size)
 
     def forward(self, x):
         token_x = self.token_embedding(x)
@@ -84,16 +84,7 @@ class Net(nn.Module):
 
         x = self.linear(x)
 
-        # Get the predicted token index based on padding and max_token_length
-        predicted_token_index = [max_token_length - 1 - (x == tokenizer.pad_token_id).sum(dim=1)
-            for i in range(len(x))
-        ]
-        predicted_token_index = torch.stack(predicted_token_index).to(device)
-
-        # Get the predicted token
-        predicted_token = x[torch.arange(x.size(0)), predicted_token_index]
-
-        return predicted_token # Softmax is automatically applied in the loss function
+        return x # Softmax is automatically applied in the loss function
 
 net = Net().to(device)
 
