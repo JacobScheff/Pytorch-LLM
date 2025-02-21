@@ -9,7 +9,7 @@ max_token_length = 20
 
 # Load the training data
 print("Loading training data...")
-train_data = json.load(open("training_data.json", "r", encoding="utf-8"))[:1]
+train_data = json.load(open("training_data.json", "r", encoding="utf-8"))
 
 # Load the tokenizer
 print("Loading tokenizer...")
