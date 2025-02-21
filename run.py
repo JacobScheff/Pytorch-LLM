@@ -23,7 +23,6 @@ print(f"Vocab size: {len(tokenizer)}")
 def encode(line):
     tokens = tokenizer.tokenize(line)
     tokens = tokenizer.convert_tokens_to_ids(tokens)
-    tokens = [tokenizer.bos_token_id] + tokens + [tokenizer.eos_token_id]
     tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
     return tokens
 
@@ -102,7 +101,7 @@ model.eval() # Set the model to evaluation mode
 print("Running...")
 print(input, end="")
 
-output_string = input
+output_string = "<BOS>" + input
 predicted_token_index = get_token_count(input)
 for _ in range(max_output_length):
     encoded_input = encode(output_string)
