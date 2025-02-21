@@ -5,7 +5,7 @@ from torchvision import datasets
 from transformers import GPT2Tokenizer
 
 max_token_length = 20
-max_output_length = 5
+max_output_length = 50
 input = "InsideAR"
 
 # device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
