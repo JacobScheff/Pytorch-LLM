@@ -103,11 +103,14 @@ print("Running...")
 print(input, end="")
 
 output_string = input
+predicted_token_index = get_token_count(input)
 for _ in range(max_output_length):
     encoded_input = encode(output_string)
+    if len(encoded_input) > max_token_length:
+        # Keep only the last max_token_length tokens
+        encoded_input = encoded_input[-max_token_length:]
 
     output = model(torch.tensor([encoded_input]).to(device))[0]
-    predicted_token_index = get_token_count(output_string)
     output = output[predicted_token_index]
     output = torch.softmax(output, dim=0)
     output = torch.argmax(output).item()
@@ -117,3 +120,6 @@ for _ in range(max_output_length):
 
     print(output, end="")
     output_string += "" + output
+    predicted_token_index += 1
+    if predicted_token_index >= max_token_length:
+        predicted_token_index = max_token_length - 1
