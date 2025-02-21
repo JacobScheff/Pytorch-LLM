@@ -6,9 +6,10 @@ from transformers import GPT2Tokenizer
 
 max_token_length = 20
 max_output_length = 50
-input = "InsideAR was"
+input = "InsideAR"
 
-device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+# device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+device = "cpu"
 
 # Load the tokenizer
 print("Loading tokenizer...")
@@ -19,19 +20,15 @@ tokenizer.add_special_tokens({"eos_token": "<EOS>"}) # Add a EOS token (end of s
 vocab_size = len(tokenizer)
 print(f"Vocab size: {len(tokenizer)}")
 
-def encode(line, truncate=True):
+def encode(line):
     tokens = tokenizer.tokenize(line)
     tokens = tokenizer.convert_tokens_to_ids(tokens)
+    tokens = [tokenizer.bos_token_id] + tokens + [tokenizer.eos_token_id]
     tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
-    if truncate and len(tokens) > max_token_length:
-        # Remove the first tokens
-        tokens = tokens[-max_token_length:]
     return tokens
 
 def decode(tokens):
-    output = tokenizer.convert_ids_to_tokens(tokens)
-    output = [token.replace("Ġ", " ") for token in output]
-    return output
+    return tokenizer.convert_ids_to_tokens(tokens)
 
 # Load the model
 print("Loading model...")
@@ -48,8 +45,8 @@ class AttentionBlock(nn.Module):
             nn.Linear(self.embed_size * 4, self.embed_size)
         ) # outputs: (batch_size, seq_len, embed_size)
 
-    def forward(self, x):    
-        attn_output, _ = self.multi_head_attention(x, x, x)
+    def forward(self, x, mask):    
+        attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask) # outputs: (batch_size, seq_len, embed_size)
         x = x + attn_output
 
         x = self.normaliztion(x)
@@ -63,7 +60,7 @@ class AttentionBlock(nn.Module):
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.embed_size = 192
+        self.embed_size = 256
         self.num_attention_blocks = 8
 
         self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
@@ -75,19 +72,20 @@ class Net(nn.Module):
             for _ in range(self.num_attention_blocks)
         ])
 
-        self.flatten = nn.Flatten() # outputs: (batch_size, seq_len * embed_size)
-        self.linear = nn.Linear(max_token_length * self.embed_size, vocab_size) # outputs: (batch_size, vocab_size)
+        self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, seq_len, vocab_size)
 
     def forward(self, x):
+        # Create mask for padding tokens. This needs to be a byte tensor
+        mask = (x == tokenizer.pad_token_id).to(device)
+
         token_x = self.token_embedding(x)
         pos_x = self.positional_embedding(self.pos_indices)
         x = token_x + pos_x
 
         # Iterate through the attention blocks
         for block in self.attention_blocks:
-            x = block(x)
+            x = block(x, mask)
 
-        x = self.flatten(x)
         x = self.linear(x)
 
         return x # Softmax is automatically applied in the loss function
@@ -96,19 +94,19 @@ model = Net().to(device)
 model.load_state_dict(torch.load("model.pth"))
 model.eval() # Set the model to evaluation mode
 
-# Run the model
-print("Running...")
-print(input, end="")
+# # Run the model
+# print("Running...")
+# print(input, end="")
 
-output_string = input
-for _ in range(max_output_length):
-    encoded_input = encode(output_string)
+# output_string = input
+# for _ in range(max_output_length):
+#     encoded_input = encode(output_string)
 
-    output = model(torch.tensor([encoded_input]).to(device))[0]
-    output = torch.softmax(output, dim=0)
-    output = torch.argmax(output).item()
+#     output = model(torch.tensor([encoded_input]).to(device))[0]
+#     output = torch.softmax(output, dim=0)
+#     output = torch.argmax(output).item()
 
-    output = decode([output])[0]
+#     output = decode([output])[0]
 
-    print(output, end="")
-    output_string += "" + output
+#     print(output, end="")
+#     output_string += "" + output
