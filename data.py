@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torchtext.data.utils import get_tokenizer
 import json
 from transformers import GPT2Tokenizer
 from tqdm.auto import tqdm
