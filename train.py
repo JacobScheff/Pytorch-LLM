@@ -44,9 +44,7 @@ class AttentionBlock(nn.Module):
             nn.Linear(self.embed_size * 4, self.embed_size)
         ) # outputs: (batch_size, seq_len, embed_size)
 
-    def forward(self, x):    
-        # Create mask for padding tokens. This needs to be a byte tensor
-        mask = (x == tokenizer.pad_token_id).to(device)  # Move mask to the same device as the input
+    def forward(self, x, mask):    
         attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask) # outputs: (batch_size, seq_len, embed_size)
         x = x + attn_output
 
@@ -76,13 +74,16 @@ class Net(nn.Module):
         self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, seq_len, vocab_size)
 
     def forward(self, x):
+        # Create mask for padding tokens. This needs to be a byte tensor
+        mask = (x == tokenizer.pad_token_id).to(device)
+
         token_x = self.token_embedding(x)
         pos_x = self.positional_embedding(self.pos_indices)
         x = token_x + pos_x
 
         # Iterate through the attention blocks
         for block in self.attention_blocks:
-            x = block(x)
+            x = block(x, mask)
 
         x = self.linear(x)
 
