@@ -9,8 +9,8 @@ torch.manual_seed(0) # Set seed for reproducibility
 max_token_length = 20
 batch_size = 256
 
-# device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-device = "cpu"
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+# device = "cpu"
 print(f"Using {device} device")
 if device == "cuda":
     print(f"Device ID: {torch.cuda.current_device()}")

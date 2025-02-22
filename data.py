@@ -51,7 +51,7 @@ for line in tqdm(encoded_train_data):
         y.append(y_line)
     else:
         # Line is longer than max_token
-        for i in range(extra_tokens):
+        for i in range(0, extra_tokens, 4):
             X.append(line[i:i+max_token_length])
             y_line = line[i+1:i+max_token_length+1]
             y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
