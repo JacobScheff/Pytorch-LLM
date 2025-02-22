@@ -121,8 +121,8 @@ for epoch in range(100):
         bar.set_postfix(loss=loss.item())
 
     # Save the model every few epochs
-    # if (epoch + 1) % 1 == 0:
-    #     torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
+    if (epoch + 1) % 1 == 0:
+        torch.save(net.state_dict(), f"models/model_{epoch + 1}.pth")
 
     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
 
