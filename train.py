@@ -105,10 +105,11 @@ def run():
     print(f"Total parameters: {total_params:,}")
 
     # TODO: Figure out how to get triton
-    net = torch.compile(net)
+    # net = torch.compile(net)
 
     # Train the model
     print("Training model...")
+    net.train() # Set the model to training mode
     criterion = nn.CrossEntropyLoss() # Automatically applies softmax
     optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
     scaler = GradScaler() # Mixed precision training
