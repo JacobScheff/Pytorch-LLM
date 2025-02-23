@@ -84,7 +84,7 @@ def run():
 
         def forward(self, x):
             # Create mask for padding tokens. This needs to be a byte tensor
-            mask = (x == tokenizer.pad_token_id).to(device)
+            mask = (x == tokenizer.pad_token_id)
 
             token_x = self.token_embedding(x)
             pos_x = self.positional_embedding(self.pos_indices)
