@@ -9,7 +9,7 @@ import os
 def run():
     torch.manual_seed(0) # Set seed for reproducibility
 
-    max_token_length = 20
+    max_token_length = 1082
     batch_size = 256
 
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
@@ -104,8 +104,12 @@ def run():
     total_params = sum(p.numel() for p in net.parameters())
     print(f"Total parameters: {total_params:,}")
 
-    # TODO: Figure out how to get triton
-    # net = torch.compile(net)
+    # # Print the paramaters for each layer with commas
+    # for name, param in net.named_parameters():
+    #     print(f"{name}: {param.numel():,}")
+
+#     # TODO: Figure out how to get triton
+#     # net = torch.compile(net)
 
     # Train the model
     print("Training model...")

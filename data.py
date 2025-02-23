@@ -5,7 +5,8 @@ import json
 from transformers import GPT2Tokenizer
 from tqdm.auto import tqdm
 
-max_token_length = 20
+max_token_length = 1082
+window_sliding = 1 # How much to slide the window when a training sammple is longer than max_token_length
 
 # Load the training data
 print("Loading training data...")
@@ -51,7 +52,7 @@ for line in tqdm(encoded_train_data):
         y.append(y_line)
     else:
         # Line is longer than max_token
-        for i in range(0, extra_tokens, 8): # Slide the window by 8 tokens
+        for i in range(0, extra_tokens, window_sliding):
             X.append(line[i:i+max_token_length])
             y_line = line[i+1:i+max_token_length+1]
             y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
