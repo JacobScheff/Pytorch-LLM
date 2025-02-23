@@ -5,8 +5,7 @@ import json
 from transformers import GPT2Tokenizer
 from tqdm.auto import tqdm
 
-max_token_length = 1082
-window_sliding = 1 # How much to slide the window when a training sammple is longer than max_token_length
+max_token_length = 200
 
 # Load the training data
 print("Loading training data...")
@@ -24,7 +23,7 @@ def encode(line):
     tokens = tokenizer.tokenize(line)
     tokens = tokenizer.convert_tokens_to_ids(tokens)
     tokens = [tokenizer.bos_token_id] + tokens + [tokenizer.eos_token_id]
-    # tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
+    tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
     return tokens
 
 def decode(tokens):
@@ -42,45 +41,23 @@ X, y = [], []
 for line in tqdm(encoded_train_data):
     # Calculate the number of tokens past the max_token_length
     extra_tokens = len(line) - max_token_length
-    if extra_tokens <= 0:
-        eos_index = line.index(tokenizer.eos_token_id)
-        x_line = line[:eos_index]
-        X.append(x_line)
+    if extra_tokens > 0:
+        x_line = line[:max_token_length]
+    X.append(x_line)
+    eos_index = line.index(tokenizer.eos_token_id)
+    try: # If there is no EOS token, ignore the line
         y_line = line[1:eos_index+1]
+        y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
         y.append(y_line)
-    else:
-        # Line is longer than max_token
-        for i in range(0, extra_tokens, window_sliding):
-            X.append(line[i:i+max_token_length])
-            y_line = line[i+1:i+max_token_length+1]
-            y.append(y_line)
+    except:
 
 # Convert to tensors
 print("Converting to tensors...")
-X = [torch.tensor(x_line) for x_line in X] # Convert to tensors before padding
-y = [torch.tensor(y_line) for y_line in y]
+X = torch.tensor(X)
+y = torch.tensor(y)
 
-# Create a dataset and dataloader
-print("Creating dataset and dataloader...")
-class CustomDataset(torch.utils.data.Dataset):
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-    
-def collate_fn(batch):
-    # Pad sequences to the maximum length within each batch
-    X, y = zip(*batch)
-    X_padded = torch.nn.utils.rnn.pad_sequence(X, batch_first=True, padding_value=tokenizer.pad_token_id)
-    y_padded = torch.nn.utils.rnn.pad_sequence(y, batch_first=True, padding_value=tokenizer.pad_token_id)
-    return X_padded, y_padded
-
-dataset = CustomDataset(X, y)
+# Create the dataset
+dataset = torch.utils.data.TensorDataset(X, y)
 
 # Save the dataset
 print("Saving dataset...")
