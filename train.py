@@ -3,6 +3,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from transformers import GPT2Tokenizer
+from torch.cuda.amp import autocast, GradScaler
 import os
 
 def run():
@@ -107,6 +108,7 @@ def run():
     print("Training model...")
     criterion = nn.CrossEntropyLoss() # Automatically applies softmax
     optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+    scaler = GradScaler() # Mixed precision training
     for epoch in range(100):
         if epoch == 50:
             optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
@@ -118,14 +120,20 @@ def run():
         # for X_batch, y_batch in dataloader:
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
             optimizer.zero_grad()
-            output = net(X_batch)
 
-            # Reshape the output to (batch_size * seq_len, vocab_size)
-            output = output.reshape(-1, vocab_size)
+            # Use autocast for mixed precision
+            with autocast():
+                output = net(X_batch)
+                output = output.reshape(-1, vocab_size)
+                loss = criterion(output, y_batch.flatten())
 
-            loss = criterion(output, y_batch.flatten())
-            loss.backward()
-            optimizer.step()
+            # Scale the loss and call backward() on the scaled loss
+            scaler.scale(loss).backward()
+
+            # Step the optimizer and update the scaler
+            scaler.step(optimizer)
+            scaler.update()
+
             bar.set_postfix(loss=loss.item())
 
         # Save the model every few epochs
