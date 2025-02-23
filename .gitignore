@@ -3,3 +3,4 @@ vocab.pth
 word_to_id.pth
 models/
 model.pth
+V1/

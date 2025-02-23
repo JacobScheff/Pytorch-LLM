@@ -4,10 +4,10 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from transformers import GPT2Tokenizer
 
-max_token_length = 20
-max_output_length = 100
+max_token_length = 200
+max_output_length = 500
 input = "The substitution principle in sustainability is the maxim that processes, services and products should, wherever possible, be replaced with"
-model_path = "models/model_16.pth"
+model_path = "models/model_2.pth"
 
 # device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 device = "cpu"
