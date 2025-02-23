@@ -46,11 +46,11 @@ def run():
             self.embed_size = embed_size
 
             self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
-            self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
+            self.normaliztion = nn.LayerNorm(self.embed_size, device=device) # outputs: (batch_size, seq_len, embed_size)
             self.feed_forward = nn.Sequential(
-                nn.Linear(self.embed_size, self.embed_size * 4),
+                nn.Linear(self.embed_size, self.embed_size * 4, device=device),
                 nn.ReLU(),
-                nn.Linear(self.embed_size * 4, self.embed_size)
+                nn.Linear(self.embed_size * 4, self.embed_size, device=device)
             ) # outputs: (batch_size, seq_len, embed_size)
 
         def forward(self, x, mask):    
@@ -71,16 +71,16 @@ def run():
             self.embed_size = 256
             self.num_attention_blocks = 8
 
-            self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
-            self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-            self.pos_indices = torch.arange(max_token_length).to(device)
+            self.token_embedding = nn.Embedding(vocab_size, self.embed_size, device=device)
+            self.positional_embedding = nn.Embedding(max_token_length, self.embed_size, device=device)
+            self.pos_indices = torch.arange(max_token_length, device=device)
 
             self.attention_blocks = nn.ModuleList([
                 AttentionBlock(self.embed_size, device=device)
                 for _ in range(self.num_attention_blocks)
             ])
 
-            self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, seq_len, vocab_size)
+            self.linear = nn.Linear(self.embed_size, vocab_size, device=device) # outputs: (batch_size, seq_len, vocab_size)
 
         def forward(self, x):
             # Create mask for padding tokens. This needs to be a byte tensor
