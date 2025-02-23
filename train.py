@@ -111,11 +111,11 @@ def run():
     print("Training model...")
     net.train() # Set the model to training mode
     criterion = nn.CrossEntropyLoss() # Automatically applies softmax
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)#0.001
     scaler = GradScaler() # Mixed precision training
     for epoch in range(100):
-        if epoch == 50:
-            optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+        # if epoch == 50:
+        #     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
 
         # Create a progress bar with a loss label
         bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}", dynamic_ncols=True)
