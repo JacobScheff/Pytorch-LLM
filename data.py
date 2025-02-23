@@ -24,7 +24,7 @@ def encode(line):
     tokens = tokenizer.tokenize(line)
     tokens = tokenizer.convert_tokens_to_ids(tokens)
     tokens = [tokenizer.bos_token_id] + tokens + [tokenizer.eos_token_id]
-    tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
+    # tokens += [tokenizer.pad_token_id] * (max_token_length - len(tokens))
     return tokens
 
 def decode(tokens):
@@ -45,27 +45,42 @@ for line in tqdm(encoded_train_data):
     if extra_tokens <= 0:
         eos_index = line.index(tokenizer.eos_token_id)
         x_line = line[:eos_index]
-        x_line += [tokenizer.pad_token_id] * (max_token_length - len(x_line))
         X.append(x_line)
         y_line = line[1:eos_index+1]
-        y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
         y.append(y_line)
     else:
         # Line is longer than max_token
         for i in range(0, extra_tokens, window_sliding):
             X.append(line[i:i+max_token_length])
             y_line = line[i+1:i+max_token_length+1]
-            y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
             y.append(y_line)
 
 # Convert to tensors
 print("Converting to tensors...")
-X = torch.tensor(X)
-y = torch.tensor(y)
+X = [torch.tensor(x_line) for x_line in X] # Convert to tensors before padding
+y = [torch.tensor(y_line) for y_line in y]
 
 # Create a dataset and dataloader
 print("Creating dataset and dataloader...")
-dataset = torch.utils.data.TensorDataset(X, y)
+class CustomDataset(torch.utils.data.Dataset):
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+    
+def collate_fn(batch):
+    # Pad sequences to the maximum length within each batch
+    X, y = zip(*batch)
+    X_padded = torch.nn.utils.rnn.pad_sequence(X, batch_first=True, padding_value=tokenizer.pad_token_id)
+    y_padded = torch.nn.utils.rnn.pad_sequence(y, batch_first=True, padding_value=tokenizer.pad_token_id)
+    return X_padded, y_padded
+
+dataset = CustomDataset(X, y)
 
 # Save the dataset
 print("Saving dataset...")
