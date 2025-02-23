@@ -6,7 +6,8 @@ from transformers import GPT2Tokenizer
 
 max_token_length = 20
 max_output_length = 100
-input = "InsideAR"
+input = "The substitution principle in sustainability is the maxim that processes, services and products should, wherever possible, be replaced with"
+model_path = "models/model_16.pth"
 
 # device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 device = "cpu"
@@ -94,7 +95,7 @@ class Net(nn.Module):
         return x # Softmax is automatically applied in the loss function
 
 model = Net().to(device)
-model.load_state_dict(torch.load("model.pth"))
+model.load_state_dict(torch.load(model_path))
 model.eval() # Set the model to evaluation mode
 
 # Run the model
@@ -103,6 +104,8 @@ print(input, end="")
 
 output_string = "<BOS>" + input
 predicted_token_index = get_token_count(input)
+if predicted_token_index >= max_token_length:
+    predicted_token_index = max_token_length - 1
 for _ in range(max_output_length):
     encoded_input = encode(output_string)
     if len(encoded_input) > max_token_length:
