@@ -10,7 +10,7 @@ def run():
     torch.manual_seed(0) # Set seed for reproducibility
 
     max_token_length = 200
-    batch_size = 256
+    batch_size = 16
 
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
     # device = "cpu"
@@ -28,7 +28,7 @@ def run():
     num_workers = max(1, num_cpus - 4) if num_cpus else 0  # Leave a couple of cores free, handle None case
     print(f"Using {num_workers} workers for data loading.")
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 
     # Load the tokenizer
     print("Loading tokenizer...")
