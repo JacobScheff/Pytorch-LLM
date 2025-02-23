@@ -37,29 +37,29 @@ def get_token_count(line):
 # Load the model
 print("Loading model...")
 class AttentionBlock(nn.Module):
-    def __init__(self, embed_size, device="cpu"):
-        super(AttentionBlock, self).__init__()
-        self.embed_size = embed_size
+        def __init__(self, embed_size, device="cpu"):
+            super(AttentionBlock, self).__init__()
+            self.embed_size = embed_size
 
-        self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
-        self.normaliztion = nn.LayerNorm(self.embed_size) # outputs: (batch_size, seq_len, embed_size)
-        self.feed_forward = nn.Sequential(
-            nn.Linear(self.embed_size, self.embed_size * 4),
-            nn.ReLU(),
-            nn.Linear(self.embed_size * 4, self.embed_size)
-        ) # outputs: (batch_size, seq_len, embed_size)
+            self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.embed_size, num_heads=8, device=device, batch_first=True) # outputs: (batch_size, seq_len, embed_size)
+            self.normaliztion = nn.LayerNorm(self.embed_size, device=device) # outputs: (batch_size, seq_len, embed_size)
+            self.feed_forward = nn.Sequential(
+                nn.Linear(self.embed_size, self.embed_size * 4, device=device),
+                nn.ReLU(),
+                nn.Linear(self.embed_size * 4, self.embed_size, device=device)
+            ) # outputs: (batch_size, seq_len, embed_size)
 
-    def forward(self, x, mask):    
-        attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask) # outputs: (batch_size, seq_len, embed_size)
-        x = x + attn_output
+        def forward(self, x, key_padding_mask, attn_mask):    
+            attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=key_padding_mask, attn_mask=attn_mask) # outputs: (batch_size, seq_len, embed_size)
+            x = x + attn_output
 
-        x = self.normaliztion(x)
+            x = self.normaliztion(x)
 
-        feed_forward_output = self.feed_forward(x)
-        x = x + feed_forward_output
+            feed_forward_output = self.feed_forward(x)
+            x = x + feed_forward_output
 
-        x = self.normaliztion(x)
-        return x
+            x = self.normaliztion(x)
+            return x
 
 class Net(nn.Module):
     def __init__(self):
@@ -67,20 +67,21 @@ class Net(nn.Module):
         self.embed_size = 256
         self.num_attention_blocks = 8
 
-        self.token_embedding = nn.Embedding(vocab_size, self.embed_size)
-        self.positional_embedding = nn.Embedding(max_token_length, self.embed_size)
-        self.pos_indices = torch.arange(max_token_length).to(device)
+        self.token_embedding = nn.Embedding(vocab_size, self.embed_size, device=device)
+        self.positional_embedding = nn.Embedding(max_token_length, self.embed_size, device=device)
+        self.pos_indices = torch.arange(max_token_length, device=device)
+        self.attn_mask = torch.triu(torch.ones(max_token_length, max_token_length, device=device) == 1, diagonal=1)
 
         self.attention_blocks = nn.ModuleList([
             AttentionBlock(self.embed_size, device=device)
             for _ in range(self.num_attention_blocks)
         ])
 
-        self.linear = nn.Linear(self.embed_size, vocab_size) # outputs: (batch_size, seq_len, vocab_size)
+        self.linear = nn.Linear(self.embed_size, vocab_size, device=device) # outputs: (batch_size, seq_len, vocab_size)
 
     def forward(self, x):
-        # Create mask for padding tokens. This needs to be a byte tensor
-        mask = (x == tokenizer.pad_token_id).to(device)
+        # Create mask for padding tokens
+        key_padding_mask = (x == tokenizer.pad_token_id)
 
         token_x = self.token_embedding(x)
         pos_x = self.positional_embedding(self.pos_indices)
@@ -88,7 +89,7 @@ class Net(nn.Module):
 
         # Iterate through the attention blocks
         for block in self.attention_blocks:
-            x = block(x, mask)
+            x = block(x, key_padding_mask, self.attn_mask)
 
         x = self.linear(x)
 

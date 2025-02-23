@@ -87,8 +87,6 @@ def run():
             # Create mask for padding tokens
             key_padding_mask = (x == tokenizer.pad_token_id)
 
-            # Create the attn_mask (can't look at future tokens)
-
             token_x = self.token_embedding(x)
             pos_x = self.positional_embedding(self.pos_indices)
             x = token_x + pos_x
