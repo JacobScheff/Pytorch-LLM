@@ -11,6 +11,8 @@ max_token_length = 200
 print("Loading training data...")
 train_data = json.load(open("training_data.json", "r", encoding="utf-8"))
 
+# TODO: Maybe use this data instead: https://huggingface.co/datasets/wikimedia/wikipedia/viewer/20231101.en?views%5B%5D=_20231101en
+
 # Load the tokenizer
 print("Loading tokenizer...")
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
