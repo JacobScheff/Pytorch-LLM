@@ -53,8 +53,8 @@ def run():
                 nn.Linear(self.embed_size * 4, self.embed_size, device=device)
             ) # outputs: (batch_size, seq_len, embed_size)
 
-        def forward(self, x, mask):    
-            attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask) # outputs: (batch_size, seq_len, embed_size)
+        def forward(self, x, key_padding_mask, attn_mask):    
+            attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=key_padding_mask, attn_mask=attn_mask) # outputs: (batch_size, seq_len, embed_size)
             x = x + attn_output
 
             x = self.normaliztion(x)
@@ -74,6 +74,7 @@ def run():
             self.token_embedding = nn.Embedding(vocab_size, self.embed_size, device=device)
             self.positional_embedding = nn.Embedding(max_token_length, self.embed_size, device=device)
             self.pos_indices = torch.arange(max_token_length, device=device)
+            self.attn_mask = torch.triu(torch.ones(max_token_length, max_token_length, device=device) == 1, diagonal=1)
 
             self.attention_blocks = nn.ModuleList([
                 AttentionBlock(self.embed_size, device=device)
@@ -83,8 +84,10 @@ def run():
             self.linear = nn.Linear(self.embed_size, vocab_size, device=device) # outputs: (batch_size, seq_len, vocab_size)
 
         def forward(self, x):
-            # Create mask for padding tokens. This needs to be a byte tensor
-            mask = (x == tokenizer.pad_token_id)
+            # Create mask for padding tokens
+            key_padding_mask = (x == tokenizer.pad_token_id)
+
+            # Create the attn_mask (can't look at future tokens)
 
             token_x = self.token_embedding(x)
             pos_x = self.positional_embedding(self.pos_indices)
@@ -92,7 +95,7 @@ def run():
 
             # Iterate through the attention blocks
             for block in self.attention_blocks:
-                x = block(x, mask)
+                x = block(x, key_padding_mask, self.attn_mask)
 
             x = self.linear(x)
 
