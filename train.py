@@ -1,8 +1,9 @@
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset, TensorDataset
 from tqdm.auto import tqdm
 from transformers import GPT2Tokenizer
+import os
 
 torch.manual_seed(0) # Set seed for reproducibility
 
@@ -18,8 +19,38 @@ if device == "cuda":
 
 # Load the training data
 print("Loading training data...")
-dataset = torch.load("dataset.pth", weights_only=False)
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+class MyDataset(Dataset):
+    def __init__(self, file_path):
+        super().__init__()  # Call super().__init__()
+        self.file_path = file_path
+        # Load directly as a TensorDataset, no dictionary needed
+        self.data: TensorDataset = torch.load(self.file_path, weights_only=False, map_location='cpu')
+        # Access the tensors directly, no need for keys.  These are now TENSORS
+        self.input_ids = self.data.tensors[0]  # X
+        self.labels = self.data.tensors[1]  # y
+        self.length = self.input_ids.size(0) # Use .size(0) for number of samples
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        # Return the tensors at the given index. No dictionary access here!
+        return self.input_ids[idx], self.labels[idx]
+dataset = MyDataset("dataset.pth")
+
+# Get the number of CPU cores, but don't use all of them
+num_cpus = os.cpu_count()
+num_workers = max(1, num_cpus - 2) if num_cpus else 0  # Leave a couple of cores free, handle None case
+print(f"Using {num_workers} workers for data loading.")
+
+dataloader = DataLoader(
+    dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    num_workers=num_workers,  # Use multiple workers
+    pin_memory=True if device == "cuda" else False,  # Pin memory if using CUDA
+    drop_last=True  #  VERY IMPORTANT.  Ensure consistent batch sizes, avoids errors.
+)
 
 # Load the tokenizer
 print("Loading tokenizer...")
