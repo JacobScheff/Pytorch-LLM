@@ -104,6 +104,9 @@ def run():
     total_params = sum(p.numel() for p in net.parameters())
     print(f"Total parameters: {total_params:,}")
 
+    # TODO: Figure out how to get triton
+    net = torch.compile(net)
+
     # Train the model
     print("Training model...")
     criterion = nn.CrossEntropyLoss() # Automatically applies softmax
