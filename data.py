@@ -43,13 +43,19 @@ for line in tqdm(encoded_train_data):
     extra_tokens = len(line) - max_token_length
     if extra_tokens > 0:
         x_line = line[:max_token_length]
-    X.append(x_line)
+        X.append(x_line)
+    else:
+        x_line = line + [tokenizer.pad_token_id] * (max_token_length - len(line))
+        X.append(x_line)
+
     eos_index = line.index(tokenizer.eos_token_id)
-    try: # If there is no EOS token, ignore the line
+    if eos_index >= max_token_length:
+        y_line = line[1:max_token_length + 1]
+        y.append(y_line)
+    else:
         y_line = line[1:eos_index+1]
         y_line += [tokenizer.pad_token_id] * (max_token_length - len(y_line))
         y.append(y_line)
-    except:
 
 # Convert to tensors
 print("Converting to tensors...")

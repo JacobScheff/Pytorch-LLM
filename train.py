@@ -9,7 +9,7 @@ import os
 def run():
     torch.manual_seed(0) # Set seed for reproducibility
 
-    max_token_length = 1082
+    max_token_length = 200
     batch_size = 256
 
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
