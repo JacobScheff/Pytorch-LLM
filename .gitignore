@@ -4,3 +4,5 @@ word_to_id.pth
 models/
 model.pth
 V1/
+wiki_data.parquet
+out.json
