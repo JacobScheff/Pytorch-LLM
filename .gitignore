@@ -6,3 +6,4 @@ model.pth
 V1/
 wiki_data.parquet
 out.json
+wiki_training_data.json
